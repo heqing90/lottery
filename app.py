@@ -12,11 +12,20 @@
 
 """
 
+import sys
+print(sys.version)
+PYTHON_VERSION_IS_2_X = sys.version.startswith('2.')
+if PYTHON_VERSION_IS_2_X:
+    import Tkinter as tk
+    import ttk
+    from Tkinter  import *
+    import urllib
+else:
+    import tkinter as tk
+    from tkinter import ttk
+    from tkinter import *
+    import urllib.request
 import random
-import tkinter as tk
-from tkinter import ttk
-from tkinter import *
-import urllib.request
 import json
 import os
 from itertools import combinations
@@ -34,7 +43,10 @@ class LotteryQurey(object):
 
     def refresh(self):
         try:
-            data = urllib.request.urlopen(self.QUERY_URL).read().decode('utf-8')
+            if PYTHON_VERSION_IS_2_X:
+                data = urllib.urlopen(self.QUERY_URL).read().decode('utf-8')
+            else:
+                data = urllib.request.urlopen(self.QUERY_URL).read().decode('utf-8')
             data = json.loads(data)['data']
             self.__parse_data(data)
             self.__save()
