@@ -95,7 +95,7 @@ class LotteryQurey(object):
 class CombinationsTool(object):
 
     @classmethod
-    def get(cls, select_mode, all_lost_code, min_lost, max_lost):
+    def get(cls, select_mode, open_code, all_lost_code, min_lost, max_lost, repeat_cnt, is_allow_serial):
         """Low:1-11, mid:12-22, high:23-33
 
         Args:
@@ -130,9 +130,19 @@ class CombinationsTool(object):
                     calulate_arr.extend(tmp_high)
                     lost_sum = sum([all_lost_code[elem - 1][1] for elem in calulate_arr])
                     # print(calulate_arr, lost_sum)
-                    if lost_sum >= min_lost and lost_sum <= max_lost:
+                    calulate_arr.sort()
+                    if not is_allow_serial:
+                        is_continue = False
+                        for index in range(4):
+                            serial_arr = list(range(calulate_arr[index], calulate_arr[index] + 3))
+                            if len(set(serial_arr) & set(calulate_arr)) == 3:
+                                is_continue = True
+                                break
+                        if is_continue is True:
+                            continue
+                    if lost_sum >= min_lost and lost_sum <= max_lost and \
+                        len(set(calulate_arr) & set(open_code)) <= repeat_cnt:
                         results.append([calulate_arr, lost_sum])
-        print(len(results))
         return results
 
     @classmethod
@@ -205,6 +215,23 @@ class App(object):
         self.tf_range_min_var.set('25')
         self.tf_range_max_var.set('35')
 
+        self.lb_repeat_cnt = tk.Label(self.frm_left, text='和本期开奖号码最大重复数:')
+        self.lb_repeat_cnt.pack()
+
+        self.tf_repeat_cnt_var = StringVar()
+        self.tf_repeat_cnt = tk.Entry(self.frm_left, textvariable=self.tf_repeat_cnt_var)
+        self.tf_repeat_cnt.pack(fill=X)
+        self.tf_repeat_cnt_var.set('2')
+
+        self.ckb_is_allow_serial_var = BooleanVar()
+        self.ckb_is_allow_serial = tk.Checkbutton(
+            self.frm_left,
+            text='是否允许连号',
+            variable=self.ckb_is_allow_serial_var,
+            onvalue=True,
+            offvalue=False)
+        self.ckb_is_allow_serial.pack(fill=X)
+
         self.btn_select_code = tk.Button(self.frm_left, text='开始选号', command=self.__select_code)
         self.btn_select_code.pack(fill=X, pady=8)
 
@@ -267,9 +294,14 @@ class App(object):
 
     def __calculate_lost_current(self):
         print('__calculate_lost_current')
+        # cur_edition = self.cbb_edition.get()
+        # lottery = self._lottery.data[cur_edition]
+        return self.__calculate_lost_code(self.__get_current_opencode())
+
+    def __get_current_opencode(self):
         cur_edition = self.cbb_edition.get()
         lottery = self._lottery.data[cur_edition]
-        return self.__calculate_lost_code(lottery['redcode'])
+        return lottery['redcode']
 
     def __calculate_lost_all(self):
         return self.__calculate_lost_code(self._lottery.allcode)
@@ -305,9 +337,12 @@ class App(object):
         self.list_selectcode.delete(0, self.list_selectcode.size() - 1)
         lost_select_code = CombinationsTool.get(
             self.cbb_select_mode.get(),
+            self.__get_current_opencode(),
             self.__calculate_lost_all(),
             int(self.tf_range_min_var.get()),
-            int(self.tf_range_max_var.get()))
+            int(self.tf_range_max_var.get()),
+            int(self.tf_repeat_cnt_var.get()),
+            self.ckb_is_allow_serial_var.get())
 
         for code in lost_select_code:
             code_str = ' '.join([str(elem) for elem in code[0]])
