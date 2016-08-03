@@ -59,9 +59,8 @@ class LotteryQurey(object):
             if os.path.exists(self.DB_FILE):
                 with open(self.DB_FILE, 'r') as fd:
                     self._data = json.load(fd)
-            else:
-                # init data from internet
-                self.refresh()
+            # update data from internet
+            self.refresh()
         except Exception as e:
             raise e
 
