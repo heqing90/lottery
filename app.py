@@ -17,6 +17,7 @@ from tkinter import *
 import urllib.request
 import json
 import os
+from itertools import combinations
 
 
 class LotteryQurey(object):
@@ -80,14 +81,69 @@ class LotteryQurey(object):
 
     @property
     def edition(self):
-         tmp = [elem for elem in self._data]
-         tmp.sort(reverse=True)
-         return tmp
+        tmp = [elem for elem in self._data]
+        tmp.sort(reverse=True)
+        return tmp
+
+    @property
+    def allcode(self):
+        return self.DEFAULT_CODE
+
+
+class CombinationsTool(object):
+
+    @classmethod
+    def get(cls, select_mode, all_lost_code, min_lost, max_lost):
+        """Low:1-11, mid:12-22, high:23-33
+
+        Args:
+            select_mode (TYPE): Description
+            all_lost_code (TYPE): Description
+            min_lost (TYPE): Description
+            max_lost (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
+        tmp = select_mode.split('-')
+        low_code_cnt, mid_code_cnt, high_code_cnt = int(tmp[0]), int(tmp[1]), int(tmp[2])
+        low_code = [num[0] for num in all_lost_code if num[1] < max_lost and num[0] in range(1, 12)]
+        mid_code = [num[0] for num in all_lost_code if num[1] < max_lost and num[0] in range(12, 23)]
+        high_code = [num[0] for num in all_lost_code if num[1] < max_lost and num[0] in range(23, 34)]
+
+        low_code_ret = cls.__calculate(low_code, low_code_cnt)
+        mid_code_ret = cls.__calculate(mid_code, mid_code_cnt)
+        high_code_ret = cls.__calculate(high_code, high_code_cnt)
+        # print(low_code_ret, mid_code_ret, high_code_ret)
+        results = []
+        for high in high_code_ret:
+            for low in low_code_ret:
+                for mid in mid_code_ret:
+                    tmp_high = list(high)
+                    tmp_low = list(low)
+                    tmp_mid = list(mid)
+                    calulate_arr = []
+                    calulate_arr.extend(tmp_low)
+                    calulate_arr.extend(tmp_mid)
+                    calulate_arr.extend(tmp_high)
+                    lost_sum = sum([all_lost_code[elem - 1][1] for elem in calulate_arr])
+                    # print(calulate_arr, lost_sum)
+                    if lost_sum >= min_lost and lost_sum <= max_lost:
+                        results.append([calulate_arr, lost_sum])
+        print(len(results))
+        return results
+
+    @classmethod
+    def __calculate(cls, arr, cnt):
+        print(arr, cnt)
+        return list(combinations(arr, cnt))
 
 
 class App(object):
     def __init__(self):
         self.root = tk.Tk()
+        self.root.grid_columnconfigure(0, weight=1)
+        # self.root.grid_rowconfigure(0, weight=1)
         self.style = ttk.Style()
         available_themes = self.style.theme_names()
         random_theme = random.choice(available_themes)
@@ -102,52 +158,84 @@ class App(object):
         try:
             self.__initialize_left()
             self.__initialize_right()
+            self.__initialize_right_bottom()
             self.__refresh_view()
         except Exception as e:
             raise e
 
     def __initialize_left(self):
-        self.frm_left =tk.LabelFrame(self.root)
-        self.frm_left.grid(row=0, column=0, padx=16)
-
-        self.btn_refresh_data = tk.Button(self.frm_left, text='  刷新  ', command=self.__refresh_raw_data)
-        self.btn_refresh_data.grid(row=0, column=1, padx=8, sticky=E)
+        self.frm_left = tk.LabelFrame(self.root)
+        self.frm_left.pack(side=LEFT, fill=Y, padx=4)
 
         self.cbb_lottery_edition = StringVar()
         self.cbb_edition = ttk.Combobox(self.frm_left, textvariable=self.cbb_lottery_edition)
         self.cbb_edition['value'] = self._lottery.edition
         self.cbb_edition['state'] = 'readonly'
         self.cbb_edition.bind('<<ComboboxSelected>>', self.__edition_change)
-        self.cbb_edition.grid(row=0,column=0, padx=8)
+        # self.cbb_edition.grid(row=0, column=0, padx=8, sticky=W)
+        self.cbb_edition.pack(fill=X, pady=8)
         self.cbb_edition.current(0)
+
+        self.btn_refresh_data = tk.Button(self.frm_left, text='手动刷新', command=self.__refresh_raw_data)
+        self.btn_refresh_data.pack(fill=X, pady=8)
 
         self.cbb_select_mode_var = StringVar()
         self.cbb_select_mode = ttk.Combobox(self.frm_left, textvariable=self.cbb_select_mode_var)
         self.cbb_select_mode['value'] = ['2-3-1', '3-2-1', '2-2-2']
-        self.cbb_select_mode.grid(row=1,column=0, padx=8)
+        self.cbb_select_mode.pack(fill=X, pady=8)
         self.cbb_select_mode.current(0)
 
+        self.lb_opencode = tk.Label(self.frm_left, text='遗漏区间(25~35)')
+        self.lb_opencode.pack()
+
+        self.frm_left_lost_range = tk.LabelFrame(self.frm_left)
+        self.frm_left_lost_range.pack()
+
+        self.tf_range_min_var = StringVar()
+        self.tf_range_min = tk.Entry(self.frm_left_lost_range, textvariable=self.tf_range_min_var)
+        self.tf_range_min.pack(side=LEFT)
+        self.lb_opencode = tk.Label(self.frm_left_lost_range, text='~~~')
+        self.lb_opencode.pack(side=LEFT)
+        self.tf_range_max_var = StringVar()
+        self.tf_range_max = tk.Entry(self.frm_left_lost_range, textvariable=self.tf_range_max_var)
+        self.tf_range_max.pack(side=LEFT)
+
+        self.tf_range_min_var.set('25')
+        self.tf_range_max_var.set('35')
+
         self.btn_select_code = tk.Button(self.frm_left, text='开始选号', command=self.__select_code)
-        self.btn_select_code.grid(row=1, column=1)
+        self.btn_select_code.pack(fill=X, pady=8)
 
     def __initialize_right(self):
-        self.frm_right =tk.LabelFrame(self.root)
-        self.frm_right.grid(row=0, column=1)
+        self.frm_right = tk.LabelFrame(self.root)
+        self.frm_right.pack(fill=BOTH, expand=True)
 
         self.lb_opencode = tk.Label(self.frm_right, text='开奖号码:')
-        self.lb_opencode.grid(row=0, column=0, padx=8)
+        self.lb_opencode.pack()
 
         self.tf_opencode_var = StringVar()
         self.tf_oepncode = tk.Entry(self.frm_right, textvariable=self.tf_opencode_var)
-        self.tf_oepncode.grid(row=0, column=1, padx=8)
+        self.tf_oepncode.pack(fill=X)
 
         self.lb_lostcode = tk.Label(self.frm_right, text='遗漏号码(合):')
-        self.lb_lostcode.grid(row=1, column=0, padx=8)
-
+        self.lb_lostcode.pack(fill=X)
         self.tf_lostcode_var = StringVar()
         self.tf_lostcode = tk.Entry(self.frm_right, textvariable=self.tf_lostcode_var)
-        self.tf_lostcode.grid(row=1, column=1, padx=8)
+        self.tf_lostcode.pack(fill=X)
 
+        self.lb_selectcode = tk.Label(self.frm_right, text='选号结果:')
+        self.lb_selectcode.pack()
+
+    def __initialize_right_bottom(self):
+        self.frm_right_bottom = tk.LabelFrame(self.frm_right)
+        self.frm_right_bottom.pack(fill=BOTH, expand=True)
+
+        self.list_selectcode = tk.Listbox(self.frm_right_bottom, selectmode=EXTENDED)
+        self.sb_selectcode = tk.Scrollbar(self.frm_right_bottom, orient=VERTICAL)
+        self.list_selectcode.config(yscrollcommand=self.sb_selectcode.set)
+        self.sb_selectcode.config(command=self.list_selectcode.yview)
+        self.list_selectcode.pack(side=LEFT, fill=BOTH, expand=True)
+        self.sb_selectcode.pack(side=RIGHT, fill=Y)
 
     def __edition_change(self, event):
         print('edition changed!:{args}'.format(args=event))
@@ -165,17 +253,24 @@ class App(object):
     def __refresh_view(self):
         lottery = self.__get_current_lottery()
         self.tf_opencode_var.set(' '.join([repr(num) for num in lottery['code']]))
-        lostcode = self.__calculate_lost_num()
+        lostcode = self.__calculate_lost_current()
         lost_code_str = ' '.join(['{num}({cnt})'.format(num=elem[0], cnt=elem[1]) for elem in lostcode])
         lost_code_sum_str = '合={sum}'.format(sum=sum([elem[1] for elem in lostcode]))
         self.tf_lostcode_var.set(','.join([lost_code_str, lost_code_sum_str]))
 
-    def __calculate_lost_num(self):
-        print('__calculate_lost_num')
+    def __calculate_lost_current(self):
+        print('__calculate_lost_current')
         cur_edition = self.cbb_edition.get()
         lottery = self._lottery.data[cur_edition]
+        return self.__calculate_lost_code(lottery['redcode'])
+
+    def __calculate_lost_all(self):
+        return self.__calculate_lost_code(self._lottery.allcode)
+
+    def __calculate_lost_code(self, lost_code):
+        cur_edition = self.cbb_edition.get()
         all_edtion = self._lottery.edition
-        lost_lottery_code = [[num, 0, False] for num in lottery['redcode']]
+        lost_lottery_code = [[num, 0, False] for num in lost_code]
         is_find = False
         for item in all_edtion:
             if cur_edition == item:
@@ -183,6 +278,8 @@ class App(object):
                 continue
             elif is_find is True:
                 for lostcode in lost_lottery_code:
+                    if lostcode[2] is True:
+                        continue
                     if lostcode[0] in self._lottery.data[item]['redcode']:
                         lostcode[2] = True
                     else:
@@ -194,11 +291,22 @@ class App(object):
                     break
             if can_break is True:
                 break
-        print(lost_lottery_code)
         return lost_lottery_code
 
     def __select_code(self):
         print('start to select code')
+        self.list_selectcode.delete(0, self.list_selectcode.size() - 1)
+        lost_select_code = CombinationsTool.get(
+            self.cbb_select_mode.get(),
+            self.__calculate_lost_all(),
+            int(self.tf_range_min_var.get()),
+            int(self.tf_range_max_var.get()))
+
+        for code in lost_select_code:
+            code_str = ' '.join([str(elem) for elem in code[0]])
+            # show_str = '{codes}, {sum}'.format(codes=code_str, sum=code[1])
+            show_str = '{codes}'.format(codes=code_str)
+            self.list_selectcode.insert(END, show_str)
 
 
 app = App()
