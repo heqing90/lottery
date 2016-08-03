@@ -89,4 +89,5 @@ ENV/
 .ropeproject
 
 #self-define
-./lottery.json
+*.json
+*.bk

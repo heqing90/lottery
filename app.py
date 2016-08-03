@@ -1,3 +1,5 @@
+# -*- coding=utf8 -*-
+
 """
 
 一、查询功能：当期开出的号，可以计算（显示）出遗漏的总和，篮球的遗漏不计算在内。
@@ -223,8 +225,10 @@ class App(object):
         self.tf_lostcode = tk.Entry(self.frm_right, textvariable=self.tf_lostcode_var)
         self.tf_lostcode.pack(fill=X)
 
-        self.lb_selectcode = tk.Label(self.frm_right, text='选号结果:')
-        self.lb_selectcode.pack()
+        self.lb_selectcode_var = StringVar()
+        self.lb_selectcode = tk.Label(self.frm_right, anchor=W, textvariable=self.lb_selectcode_var)
+        self.lb_selectcode.pack(fill=X)
+        self.lb_selectcode_var.set('选号结果: ')
 
     def __initialize_right_bottom(self):
         self.frm_right_bottom = tk.LabelFrame(self.frm_right)
@@ -257,6 +261,9 @@ class App(object):
         lost_code_str = ' '.join(['{num}({cnt})'.format(num=elem[0], cnt=elem[1]) for elem in lostcode])
         lost_code_sum_str = '合={sum}'.format(sum=sum([elem[1] for elem in lostcode]))
         self.tf_lostcode_var.set(','.join([lost_code_str, lost_code_sum_str]))
+
+    def __refresh_selection_results_tips(self, cnt=0):
+        self.lb_selectcode_var.set('选号结果: 共 {count} 注'.format(count=cnt))
 
     def __calculate_lost_current(self):
         print('__calculate_lost_current')
@@ -307,6 +314,8 @@ class App(object):
             # show_str = '{codes}, {sum}'.format(codes=code_str, sum=code[1])
             show_str = '{codes}'.format(codes=code_str)
             self.list_selectcode.insert(END, show_str)
+
+        self.__refresh_selection_results_tips(len(lost_select_code))
 
 
 app = App()
