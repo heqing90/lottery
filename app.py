@@ -135,8 +135,12 @@ class CombinationsTool(object):
         low_code_ret = cls.__calculate(low_code, low_code_cnt)
         mid_code_ret = cls.__calculate(mid_code, mid_code_cnt)
         high_code_ret = cls.__calculate(high_code, high_code_cnt)
-        # print(low_code_ret, mid_code_ret, high_code_ret)
+
         results = []
+        max_serial_number_cnt = 2
+        if not is_allow_serial:
+            max_serial_number_cnt = 1
+        print('max_serial_number_cnt:', max_serial_number_cnt)
         for high in high_code_ret:
             for low in low_code_ret:
                 for mid in mid_code_ret:
@@ -150,11 +154,8 @@ class CombinationsTool(object):
                     lost_sum = sum([all_lost_code[elem - 1][1] for elem in calulate_arr])
                     # print(calulate_arr, lost_sum)
                     calulate_arr.sort()
-                    max_serial_number_cnt = 2
-                    if not is_allow_serial:
-                        max_serial_number_cnt = 1
                     is_continue = False
-                    for index in range(4):
+                    for index in range(6 - max_serial_number_cnt):
                         serial_arr = list(range(calulate_arr[index], calulate_arr[index] + 3))
                         if len(set(serial_arr) & set(calulate_arr)) > max_serial_number_cnt:
                             is_continue = True
@@ -292,13 +293,13 @@ class App(object):
         self.lb_opencode.pack()
 
         self.tf_opencode_var = StringVar()
-        self.tf_oepncode = tk.Entry(self.frm_right, textvariable=self.tf_opencode_var)
+        self.tf_oepncode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 16', fg='OrangeRed2', bg='ghost white', textvariable=self.tf_opencode_var)
         self.tf_oepncode.pack(fill=X)
 
-        self.lb_lostcode = tk.Label(self.frm_right, text='遗漏号码(合):')
+        self.lb_lostcode = tk.Label(self.frm_right, text='遗漏号码(本期遗漏次数):')
         self.lb_lostcode.pack(fill=X)
         self.tf_lostcode_var = StringVar()
-        self.tf_lostcode = tk.Entry(self.frm_right, textvariable=self.tf_lostcode_var)
+        self.tf_lostcode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 16', fg='SteelBlue', bg='ghost white', textvariable=self.tf_lostcode_var)
         self.tf_lostcode.pack(fill=X)
 
         self.lb_selectcode_var = StringVar()
@@ -327,8 +328,9 @@ class App(object):
         self.list_selectcode_out.pack(side=LEFT, fill=BOTH, expand=True)
         self.sb_selectcode_out.pack(side=LEFT, fill=Y)
         self.list_selectcode_out.bind('<Control-a>', self.__select_all_electcodes_out)
-        self.list_selectcode_out.bind('<Double-Button-1>', self.__doubleclick_on_selectcods_out_list)
-        self.list_selectcode_out.bind('<space>', self.__doubleclick_on_selectcods_out_list)
+        self.list_selectcode_out.bind('<Double-Button-1>', self.__doubleclick_on_selectcodes_out_list)
+        self.list_selectcode_out.bind('<space>', self.__doubleclick_on_selectcodes_out_list)
+        self.list_selectcode_out.bind('<BackSpace>', self.__delete_on_selectcodes_out_list)
 
     def __edition_change(self, event):
         print('edition changed!:{args}'.format(args=event))
@@ -345,16 +347,16 @@ class App(object):
 
     def __refresh_view(self):
         lottery = self.__get_current_lottery()
-        self.tf_opencode_var.set(' '.join([repr(num) for num in lottery['code']]))
+        self.tf_opencode_var.set('  '.join([repr(num) for num in lottery['code']]))
         lostcode = self.__calculate_lost_current()
-        lost_code_str = ' '.join(['{num}({cnt})'.format(num=elem[0], cnt=elem[1]) for elem in lostcode])
+        lost_code_str = '  '.join(['{num}({cnt})'.format(num=elem[0], cnt=elem[1]) for elem in lostcode])
         lost_code_sum_str = '合={sum}'.format(sum=sum([elem[1] for elem in lostcode]))
         self.tf_lostcode_var.set(','.join([lost_code_str, lost_code_sum_str]))
 
     def __refresh_selection_results_tips(self):
         cnt = self.list_selectcode.size()
         selected_cnt = self.list_selectcode_out.size()
-        self.lb_selectcode_var.set('选号结果: 共 {count} 注, 已选取 {selectedcnt} 注.(双击选中或选中+空格，可以(反)选取号码)'.format(count=cnt, selectedcnt=selected_cnt))
+        self.lb_selectcode_var.set('选号结果: 共 {count} 注, 已选取 {selectedcnt} 注.(双击选中或选中+空格，可以(反)选取号码), 退格键(BackSpace)可删除已选'.format(count=cnt, selectedcnt=selected_cnt))
 
     def __calculate_lost_current(self):
         print('__calculate_lost_current')
@@ -440,7 +442,7 @@ class App(object):
                     self.list_selectcode.delete(delete_idx)
         self.__refresh_selection_results_tips()
 
-    def __doubleclick_on_selectcods_out_list(self, event):
+    def __doubleclick_on_selectcodes_out_list(self, event):
         indexs = list(self.list_selectcode_out.curselection())
         if len(indexs) > 0:
             selected_items = [self.list_selectcode_out.get(index) for index in indexs]
@@ -455,7 +457,16 @@ class App(object):
                     if index not in delete_arr:
                         delete_idx += 1
                     self.list_selectcode_out.delete(delete_idx)
+        self.__refresh_selection_results_tips()
 
+    def __delete_on_selectcodes_out_list(self, event):
+        indexs = list(self.list_selectcode_out.curselection())
+        delete_arr = range(indexs[0], indexs[-1] + 1)
+        delete_idx = indexs[0]
+        for index in indexs:
+            if index not in delete_arr:
+                delete_idx += 1
+            self.list_selectcode_out.delete(delete_idx)
         self.__refresh_selection_results_tips()
 
 app = App()
