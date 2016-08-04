@@ -173,8 +173,10 @@ class App(object):
         # xpnative
         self.style.theme_use(random_theme)
         self.root.title('遗漏选号谦哥版')
-        w = self.root.winfo_screenwidth()
-        h = self.root.winfo_screenheight()
+        # w = self.root.winfo_screenwidth()
+        # h = self.root.winfo_screenheight()
+        w = 1000
+        h = 750
         self.root.geometry("%dx%d" % (w, h))
         self._lottery = LotteryQurey()
         self.__initialize_components()
