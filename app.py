@@ -51,7 +51,7 @@ class LotteryQurey(object):
             self.__parse_data(data)
             self.__save()
         except Exception as e:
-            raise e
+            print('ERROR: cannot get the new info from internet.[{err}]'.format(err=e))
 
     def __parse_data(self, data):
         lotteries = {}
@@ -74,7 +74,7 @@ class LotteryQurey(object):
             # update data from internet
             self.refresh()
         except Exception as e:
-            raise e
+            print('ERROR: cannot get the new info from local.[{err}]'.format(err=e))
 
     def __save(self):
         try:
@@ -274,7 +274,7 @@ class App(object):
         self.frm_right_bottom = tk.LabelFrame(self.frm_right)
         self.frm_right_bottom.pack(fill=BOTH, expand=True)
 
-        self.list_selectcode = tk.Listbox(self.frm_right_bottom, selectmode=EXTENDED)
+        self.list_selectcode = tk.Listbox(self.frm_right_bottom, font='Times 16', selectmode=EXTENDED)
         self.sb_selectcode = tk.Scrollbar(self.frm_right_bottom, orient=VERTICAL)
         self.list_selectcode.config(yscrollcommand=self.sb_selectcode.set)
         self.sb_selectcode.config(command=self.list_selectcode.yview)
@@ -360,7 +360,7 @@ class App(object):
             self.ckb_is_allow_serial_var.get())
 
         for code in lost_select_code:
-            code_str = ' '.join([str(elem) for elem in code[0]])
+            code_str = '  '.join([str(elem) for elem in code[0]])
             # show_str = '{codes}, {sum}'.format(codes=code_str, sum=code[1])
             show_str = '{codes}'.format(codes=code_str)
             self.list_selectcode.insert(END, show_str)
