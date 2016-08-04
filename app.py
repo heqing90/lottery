@@ -12,23 +12,23 @@
 
 """
 
+import json
+import os
+from itertools import combinations
+import random
 import sys
 print(sys.version)
 PYTHON_VERSION_IS_2_X = sys.version.startswith('2.')
 if PYTHON_VERSION_IS_2_X:
     import Tkinter as tk
     import ttk
-    from Tkinter  import *
+    from Tkinter import *
     import urllib
 else:
     import tkinter as tk
     from tkinter import ttk
     from tkinter import *
     import urllib.request
-import random
-import json
-import os
-from itertools import combinations
 
 
 class LotteryQurey(object):
@@ -217,12 +217,12 @@ class App(object):
         self.frm_left_lost_range.pack()
 
         self.tf_range_min_var = StringVar()
-        self.tf_range_min = tk.Entry(self.frm_left_lost_range, textvariable=self.tf_range_min_var)
+        self.tf_range_min = tk.Entry(self.frm_left_lost_range, justify=CENTER, textvariable=self.tf_range_min_var)
         self.tf_range_min.pack(side=LEFT)
         self.lb_opencode = tk.Label(self.frm_left_lost_range, text='~~~')
         self.lb_opencode.pack(side=LEFT)
         self.tf_range_max_var = StringVar()
-        self.tf_range_max = tk.Entry(self.frm_left_lost_range, textvariable=self.tf_range_max_var)
+        self.tf_range_max = tk.Entry(self.frm_left_lost_range, justify=CENTER, textvariable=self.tf_range_max_var)
         self.tf_range_max.pack(side=LEFT)
 
         self.tf_range_min_var.set('25')
@@ -232,7 +232,7 @@ class App(object):
         self.lb_repeat_cnt.pack()
 
         self.tf_repeat_cnt_var = StringVar()
-        self.tf_repeat_cnt = tk.Entry(self.frm_left, textvariable=self.tf_repeat_cnt_var)
+        self.tf_repeat_cnt = tk.Entry(self.frm_left, justify=CENTER, textvariable=self.tf_repeat_cnt_var)
         self.tf_repeat_cnt.pack(fill=X)
         self.tf_repeat_cnt_var.set('2')
 
@@ -280,6 +280,8 @@ class App(object):
         self.sb_selectcode.config(command=self.list_selectcode.yview)
         self.list_selectcode.pack(side=LEFT, fill=BOTH, expand=True)
         self.sb_selectcode.pack(side=RIGHT, fill=Y)
+
+        self.list_selectcode.bind('<Control-a>', self.__select_all_electcodes)
 
     def __edition_change(self, event):
         print('edition changed!:{args}'.format(args=event))
@@ -365,6 +367,9 @@ class App(object):
 
         self.__refresh_selection_results_tips(len(lost_select_code))
 
+    def __select_all_electcodes(self, event):
+        print('selection event')
+        self.list_selectcode.select_set(0, END)
 
 app = App()
 app.root.mainloop()
