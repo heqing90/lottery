@@ -80,7 +80,7 @@ class LotteryQurey(object):
                 with open(self.DB_FILE, 'r') as fd:
                     self._data = json.load(fd)
             # update data from internet
-            # self.refresh()
+            self.refresh()
         except Exception as e:
             print('ERROR: cannot get the new info from local.[{err}]'.format(err=e))
 
