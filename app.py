@@ -26,8 +26,8 @@ from itertools import combinations
 import random
 import sys
 print(sys.version)
-PYTHON_VERSION_IS_2_X = sys.version.startswith('2.')
-if PYTHON_VERSION_IS_2_X:
+PY2X= sys.version_info[0]
+if PY2X:
     import Tkinter as tk
     import ttk
     from Tkinter import *
@@ -51,7 +51,7 @@ class LotteryQurey(object):
 
     def refresh(self):
         try:
-            if PYTHON_VERSION_IS_2_X:
+            if PY2X:
                 data = urllib.urlopen(self.QUERY_URL).read().decode('utf-8')
             else:
                 data = urllib.request.urlopen(self.QUERY_URL).read().decode('utf-8')
@@ -296,7 +296,7 @@ class App(object):
         self.tf_oepncode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 16', fg='OrangeRed2', bg='ghost white', textvariable=self.tf_opencode_var)
         self.tf_oepncode.pack(fill=X)
 
-        self.lb_lostcode = tk.Label(self.frm_right, text='遗漏号码(本期遗漏次数):')
+        self.lb_lostcode = tk.Label(self.frm_right, text='遗漏号码(上期遗漏次数):')
         self.lb_lostcode.pack(fill=X)
         self.tf_lostcode_var = StringVar()
         self.tf_lostcode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 16', fg='SteelBlue', bg='ghost white', textvariable=self.tf_lostcode_var)
@@ -362,7 +362,7 @@ class App(object):
         print('__calculate_lost_current')
         # cur_edition = self.cbb_edition.get()
         # lottery = self._lottery.data[cur_edition]
-        return self.__calculate_lost_code(self.__get_current_opencode())
+        return self.__calculate_lost_code(self.__get_current_opencode(), is_cur_lost=True)
 
     def __get_current_opencode(self):
         cur_edition = self.cbb_edition.get()
@@ -372,16 +372,20 @@ class App(object):
     def __calculate_lost_all(self):
         return self.__calculate_lost_code(self._lottery.allcode)
 
-    def __calculate_lost_code(self, lost_code):
-        cur_edition = self.cbb_edition.get()
+    def __calculate_lost_code(self, lost_code, spec_editon=None, is_cur_lost=False):
+        if spec_editon is None:
+            cur_edition = self.cbb_edition.get()
+        else:
+            cur_edition = spec_editon
         all_edtion = self._lottery.edition
         lost_lottery_code = [[num, 0, False] for num in lost_code]
         is_find = False
         for item in all_edtion:
             if cur_edition == item:
                 is_find = True
-                continue
-            elif is_find is True:
+                if is_cur_lost:
+                    continue
+            if is_find is True:
                 for lostcode in lost_lottery_code:
                     if lostcode[2] is True:
                         continue
@@ -389,6 +393,8 @@ class App(object):
                         lostcode[2] = True
                     else:
                         lostcode[1] += 1
+            else:
+                continue
             can_break = True
             for lostcode in lost_lottery_code:
                 if lostcode[2] is False:
@@ -410,7 +416,6 @@ class App(object):
             int(self.tf_repeat_cnt_var.get()),
             self.ckb_is_allow_serial_var.get(),
             int(self.cbb_select_odd_var.get().split('-')[0]) if self.ckb_is_allow_odd_var.get() else -1)
-
         for code in lost_select_code:
             code_str = '  '.join([str(elem) for elem in code[0]])
             # show_str = '{codes}, {sum}'.format(codes=code_str, sum=code[1])
