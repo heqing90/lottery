@@ -1,7 +1,7 @@
 # -*- coding=utf8 -*-
 
 """
-
+V1.
 一、查询功能：当期开出的号，可以计算（显示）出遗漏的总和，篮球的遗漏不计算在内。
 如本期开：1 2 3 4 5 6 遗漏和为3+1+0+4+16+6=30
 二、选号功能：两个条件（1.遗漏和，2.号段内出的个数）
@@ -9,6 +9,14 @@
 选号程序设计为：2+3+1；3+2+1；2+2+2，（这个先定这个三个模式，后期最好可以随时调整）
 2+3+1即号段1为2个数，号段2为3个数，号段3为1个数
 举例：本期买遗漏和30，号段1内出6个数，一种可能就是1 2 3 4 5 6+X
+
+V2
+
+条件1： 选号区间设定：1-3-2；2-2-2（如果此设置不是很复杂，可以加上1-2-3和2-3-1）
+条件2：遗漏和值区间
+条件3：与上期开奖号最大重复数（0、1、2）
+条件4：允许出现连号的号码0/1组，1组即2个号，3连号以上排除。
+条件5：奇偶比设定（2:4,3:3,4:2）
 
 """
 
@@ -72,7 +80,7 @@ class LotteryQurey(object):
                 with open(self.DB_FILE, 'r') as fd:
                     self._data = json.load(fd)
             # update data from internet
-            self.refresh()
+            # self.refresh()
         except Exception as e:
             print('ERROR: cannot get the new info from local.[{err}]'.format(err=e))
 
@@ -106,7 +114,7 @@ class LotteryQurey(object):
 class CombinationsTool(object):
 
     @classmethod
-    def get(cls, select_mode, open_code, all_lost_code, min_lost, max_lost, repeat_cnt, is_allow_serial):
+    def get(cls, select_mode, open_code, all_lost_code, min_lost, max_lost, repeat_cnt, is_allow_serial, odd_cnt=-1):
         """Low:1-11, mid:12-22, high:23-33
 
         Args:
@@ -142,14 +150,20 @@ class CombinationsTool(object):
                     lost_sum = sum([all_lost_code[elem - 1][1] for elem in calulate_arr])
                     # print(calulate_arr, lost_sum)
                     calulate_arr.sort()
+                    max_serial_number_cnt = 2
                     if not is_allow_serial:
-                        is_continue = False
-                        for index in range(4):
-                            serial_arr = list(range(calulate_arr[index], calulate_arr[index] + 3))
-                            if len(set(serial_arr) & set(calulate_arr)) == 3:
-                                is_continue = True
-                                break
-                        if is_continue is True:
+                        max_serial_number_cnt = 1
+                    is_continue = False
+                    for index in range(4):
+                        serial_arr = list(range(calulate_arr[index], calulate_arr[index] + 3))
+                        if len(set(serial_arr) & set(calulate_arr)) > max_serial_number_cnt:
+                            is_continue = True
+                            break
+                    if is_continue is True:
+                        continue
+                    if odd_cnt > -1:
+                        odd_numbers = [num for num in calulate_arr if num % 2 != 0]
+                        if len(odd_numbers) != odd_cnt:
                             continue
                     if lost_sum >= min_lost and lost_sum <= max_lost and \
                         len(set(calulate_arr) & set(open_code)) <= repeat_cnt:
@@ -158,7 +172,6 @@ class CombinationsTool(object):
 
     @classmethod
     def __calculate(cls, arr, cnt):
-        print(arr, cnt)
         return list(combinations(arr, cnt))
 
 
@@ -206,11 +219,32 @@ class App(object):
         self.btn_refresh_data = tk.Button(self.frm_left, text='手动刷新', command=self.__refresh_raw_data)
         self.btn_refresh_data.pack(fill=X, pady=8)
 
+        self.lb_select_mode = tk.Label(self.frm_left, anchor=W, text='区间比(可输入 低区-中区-高区)')
+        self.lb_select_mode.pack(fill=X)
+
         self.cbb_select_mode_var = StringVar()
         self.cbb_select_mode = ttk.Combobox(self.frm_left, textvariable=self.cbb_select_mode_var)
-        self.cbb_select_mode['value'] = ['2-3-1', '3-2-1', '2-2-2']
+        self.cbb_select_mode['value'] = ['2-3-1', '3-2-1', '2-2-2', '1-2-3', '1-3-2', '3-1-2']
         self.cbb_select_mode.pack(fill=X, pady=8)
         self.cbb_select_mode.current(0)
+
+        self.ckb_is_allow_odd_var = BooleanVar()
+        self.ckb_is_allow_odd = tk.Checkbutton(
+            self.frm_left,
+            text='是否允许奇偶比',
+            variable=self.ckb_is_allow_odd_var,
+            onvalue=True,
+            offvalue=False)
+        self.ckb_is_allow_odd.pack(fill=X)
+
+        self.lb_select_mode = tk.Label(self.frm_left, anchor=W, text='奇偶比(可输入 奇数-偶数)')
+        self.lb_select_mode.pack(fill=X)
+
+        self.cbb_select_odd_var = StringVar()
+        self.cbb_select_odd = ttk.Combobox(self.frm_left, textvariable=self.cbb_select_odd_var)
+        self.cbb_select_odd['value'] = ['2-4', '4-2', '1-5', '5-1', '3-3']
+        self.cbb_select_odd.pack(fill=X, pady=8)
+        self.cbb_select_odd.current(0)
 
         self.lb_opencode = tk.Label(self.frm_left, text='遗漏区间(25~35)')
         self.lb_opencode.pack()
@@ -276,14 +310,25 @@ class App(object):
         self.frm_right_bottom = tk.LabelFrame(self.frm_right)
         self.frm_right_bottom.pack(fill=BOTH, expand=True)
 
-        self.list_selectcode = tk.Listbox(self.frm_right_bottom, font='Times 16', selectmode=EXTENDED)
+        self.list_selectcode = tk.Listbox(self.frm_right_bottom, font='Times 16', fg='forest green', selectmode=EXTENDED)
         self.sb_selectcode = tk.Scrollbar(self.frm_right_bottom, orient=VERTICAL)
         self.list_selectcode.config(yscrollcommand=self.sb_selectcode.set)
         self.sb_selectcode.config(command=self.list_selectcode.yview)
         self.list_selectcode.pack(side=LEFT, fill=BOTH, expand=True)
-        self.sb_selectcode.pack(side=RIGHT, fill=Y)
-
+        self.sb_selectcode.pack(side=LEFT, fill=Y)
         self.list_selectcode.bind('<Control-a>', self.__select_all_electcodes)
+        self.list_selectcode.bind('<Double-Button-1>', self.__doubleclick_on_selectcods_list)
+        self.list_selectcode.bind('<space>', self.__doubleclick_on_selectcods_list)
+
+        self.list_selectcode_out = tk.Listbox(self.frm_right_bottom, font='Arial  16', fg='goldenrod1', bg='white smoke', selectmode=EXTENDED)
+        self.sb_selectcode_out = tk.Scrollbar(self.frm_right_bottom, orient=VERTICAL)
+        self.list_selectcode_out.config(yscrollcommand=self.sb_selectcode_out.set)
+        self.sb_selectcode_out.config(command=self.list_selectcode_out.yview)
+        self.list_selectcode_out.pack(side=LEFT, fill=BOTH, expand=True)
+        self.sb_selectcode_out.pack(side=LEFT, fill=Y)
+        self.list_selectcode_out.bind('<Control-a>', self.__select_all_electcodes_out)
+        self.list_selectcode_out.bind('<Double-Button-1>', self.__doubleclick_on_selectcods_out_list)
+        self.list_selectcode_out.bind('<space>', self.__doubleclick_on_selectcods_out_list)
 
     def __edition_change(self, event):
         print('edition changed!:{args}'.format(args=event))
@@ -306,8 +351,10 @@ class App(object):
         lost_code_sum_str = '合={sum}'.format(sum=sum([elem[1] for elem in lostcode]))
         self.tf_lostcode_var.set(','.join([lost_code_str, lost_code_sum_str]))
 
-    def __refresh_selection_results_tips(self, cnt=0):
-        self.lb_selectcode_var.set('选号结果: 共 {count} 注'.format(count=cnt))
+    def __refresh_selection_results_tips(self):
+        cnt = self.list_selectcode.size()
+        selected_cnt = self.list_selectcode_out.size()
+        self.lb_selectcode_var.set('选号结果: 共 {count} 注, 已选取 {selectedcnt} 注.(双击选中或选中+空格，可以(反)选取号码)'.format(count=cnt, selectedcnt=selected_cnt))
 
     def __calculate_lost_current(self):
         print('__calculate_lost_current')
@@ -353,13 +400,14 @@ class App(object):
         print('start to select code')
         self.list_selectcode.delete(0, self.list_selectcode.size() - 1)
         lost_select_code = CombinationsTool.get(
-            self.cbb_select_mode.get(),
+            self.cbb_select_mode_var.get(),
             self.__get_current_opencode(),
             self.__calculate_lost_all(),
             int(self.tf_range_min_var.get()),
             int(self.tf_range_max_var.get()),
             int(self.tf_repeat_cnt_var.get()),
-            self.ckb_is_allow_serial_var.get())
+            self.ckb_is_allow_serial_var.get(),
+            int(self.cbb_select_odd_var.get().split('-')[0]) if self.ckb_is_allow_odd_var.get() else -1)
 
         for code in lost_select_code:
             code_str = '  '.join([str(elem) for elem in code[0]])
@@ -367,11 +415,48 @@ class App(object):
             show_str = '{codes}'.format(codes=code_str)
             self.list_selectcode.insert(END, show_str)
 
-        self.__refresh_selection_results_tips(len(lost_select_code))
+        self.__refresh_selection_results_tips()
 
     def __select_all_electcodes(self, event):
-        print('selection event')
         self.list_selectcode.select_set(0, END)
+
+    def __select_all_electcodes_out(self, event):
+        self.list_selectcode_out.select_set(0, END)
+
+    def __doubleclick_on_selectcods_list(self, event):
+        indexs = list(self.list_selectcode.curselection())
+        if len(indexs) > 0:
+            selected_items = [self.list_selectcode.get(index) for index in indexs]
+            for item in selected_items:
+                self.list_selectcode_out.insert(END, item)
+            if len(indexs) == self.list_selectcode.size():
+                self.list_selectcode.delete(0, END)
+            else:
+                delete_arr = range(indexs[0], indexs[-1] + 1)
+                delete_idx = indexs[0]
+                for index in indexs:
+                    if index not in delete_arr:
+                        delete_idx += 1
+                    self.list_selectcode.delete(delete_idx)
+        self.__refresh_selection_results_tips()
+
+    def __doubleclick_on_selectcods_out_list(self, event):
+        indexs = list(self.list_selectcode_out.curselection())
+        if len(indexs) > 0:
+            selected_items = [self.list_selectcode_out.get(index) for index in indexs]
+            for item in selected_items:
+                self.list_selectcode.insert(END, item)
+            if len(indexs) == self.list_selectcode_out.size():
+                self.list_selectcode_out.delete(0, END)
+            else:
+                delete_arr = range(indexs[0], indexs[-1] + 1)
+                delete_idx = indexs[0]
+                for index in indexs:
+                    if index not in delete_arr:
+                        delete_idx += 1
+                    self.list_selectcode_out.delete(delete_idx)
+
+        self.__refresh_selection_results_tips()
 
 app = App()
 app.root.mainloop()
