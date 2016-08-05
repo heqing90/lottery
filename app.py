@@ -114,7 +114,7 @@ class LotteryQurey(object):
 class CombinationsTool(object):
 
     @classmethod
-    def get(cls, select_mode, open_code, all_lost_code, min_lost, max_lost, repeat_cnt, is_allow_serial, odd_cnt=-1):
+    def get(cls, select_mode, open_code, all_lost_code, min_lost, max_lost, repeat_cnt, repeat_team_max_cnt, odd_cnt):
         """Low:1-11, mid:12-22, high:23-33
 
         Args:
@@ -137,10 +137,6 @@ class CombinationsTool(object):
         high_code_ret = cls.__calculate(high_code, high_code_cnt)
 
         results = []
-        max_serial_number_cnt = 2
-        if not is_allow_serial:
-            max_serial_number_cnt = 1
-        print('max_serial_number_cnt:', max_serial_number_cnt)
         for high in high_code_ret:
             for low in low_code_ret:
                 for mid in mid_code_ret:
@@ -152,15 +148,19 @@ class CombinationsTool(object):
                     calulate_arr.extend(tmp_mid)
                     calulate_arr.extend(tmp_high)
                     lost_sum = sum([all_lost_code[elem - 1][1] for elem in calulate_arr])
-                    # print(calulate_arr, lost_sum)
                     calulate_arr.sort()
                     is_continue = False
-                    for index in range(6 - max_serial_number_cnt):
+                    repeat_team_cnt = 0
+                    for index in range(5):
                         serial_arr = list(range(calulate_arr[index], calulate_arr[index] + 3))
-                        if len(set(serial_arr) & set(calulate_arr)) > max_serial_number_cnt:
+                        repeat_count = len(set(serial_arr) & set(calulate_arr))
+                        if repeat_count > 2:
+                            # ignore more than 3 chains number
                             is_continue = True
                             break
-                    if is_continue is True:
+                        elif repeat_count > 1:
+                            repeat_team_cnt += 1
+                    if is_continue is True or repeat_team_cnt != repeat_team_max_cnt:
                         continue
                     if odd_cnt > -1:
                         odd_numbers = [num for num in calulate_arr if num % 2 != 0]
@@ -217,7 +217,7 @@ class App(object):
         self.cbb_edition.pack(fill=X, pady=8)
         self.cbb_edition.current(0)
 
-        self.btn_refresh_data = tk.Button(self.frm_left, text='手动刷新', command=self.__refresh_raw_data)
+        self.btn_refresh_data = tk.Button(self.frm_left, text='手 动 刷 新', font='16', bg='PaleGreen', command=self.__refresh_raw_data)
         self.btn_refresh_data.pack(fill=X, pady=8)
 
         self.lb_select_mode = tk.Label(self.frm_left, anchor=W, text='区间比(可输入 低区-中区-高区)')
@@ -273,16 +273,22 @@ class App(object):
         self.tf_repeat_cnt.pack(fill=X)
         self.tf_repeat_cnt_var.set('2')
 
-        self.ckb_is_allow_serial_var = BooleanVar()
-        self.ckb_is_allow_serial = tk.Checkbutton(
-            self.frm_left,
-            text='是否允许连号',
-            variable=self.ckb_is_allow_serial_var,
-            onvalue=True,
-            offvalue=False)
-        self.ckb_is_allow_serial.pack(fill=X)
+        self.lb_opencode = tk.Label(self.frm_left, text='允许连号组数(3个以上连号排除)')
+        self.lb_opencode.pack()
 
-        self.btn_select_code = tk.Button(self.frm_left, text='开始选号', command=self.__select_code)
+        self.frm_left_lost_repeat = tk.LabelFrame(self.frm_left)
+        self.frm_left_lost_repeat.pack(fill=X, padx=8)
+        self.rb_lost_repeat_cnt = IntVar()
+        self.rb_lost_repeat_0 = tk.Radiobutton(self.frm_left_lost_repeat, text="0组", variable=self.rb_lost_repeat_cnt, value=0)
+        self.rb_lost_repeat_1 = tk.Radiobutton(self.frm_left_lost_repeat, text="1组", variable=self.rb_lost_repeat_cnt, value=1)
+        self.rb_lost_repeat_2 = tk.Radiobutton(self.frm_left_lost_repeat, text="2组", variable=self.rb_lost_repeat_cnt, value=2)
+        self.rb_lost_repeat_3 = tk.Radiobutton(self.frm_left_lost_repeat, text="3组", variable=self.rb_lost_repeat_cnt, value=3)
+        self.rb_lost_repeat_0.pack(side=LEFT, fill=X)
+        self.rb_lost_repeat_1.pack(side=LEFT, fill=X)
+        self.rb_lost_repeat_2.pack(side=LEFT, fill=X)
+        self.rb_lost_repeat_3.pack(side=LEFT, fill=X)
+
+        self.btn_select_code = tk.Button(self.frm_left, text='开 始 选 号', font='16', bg='Orange', command=self.__select_code)
         self.btn_select_code.pack(fill=X, pady=8)
 
     def __initialize_right(self):
@@ -346,12 +352,10 @@ class App(object):
         self._lottery.refresh()
 
     def __refresh_view(self):
-        lottery = self.__get_current_lottery()
-        self.tf_opencode_var.set('  '.join([repr(num) for num in lottery['code']]))
         lostcode = self.__calculate_lost_current()
         lost_code_str = '  '.join(['{num}({cnt})'.format(num=elem[0], cnt=elem[1]) for elem in lostcode])
         lost_code_sum_str = '合={sum}'.format(sum=sum([elem[1] for elem in lostcode]))
-        self.tf_lostcode_var.set(','.join([lost_code_str, lost_code_sum_str]))
+        self.tf_opencode_var.set(','.join([lost_code_str, lost_code_sum_str]))
 
     def __refresh_selection_results_tips(self):
         cnt = self.list_selectcode.size()
@@ -414,7 +418,7 @@ class App(object):
             int(self.tf_range_min_var.get()),
             int(self.tf_range_max_var.get()),
             int(self.tf_repeat_cnt_var.get()),
-            self.ckb_is_allow_serial_var.get(),
+            self.rb_lost_repeat_cnt.get(),
             int(self.cbb_select_odd_var.get().split('-')[0]) if self.ckb_is_allow_odd_var.get() else -1)
         for code in lost_select_code:
             code_str = '  '.join([str(elem) for elem in code[0]])
