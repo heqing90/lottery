@@ -249,15 +249,6 @@ class App(object):
         self.cbb_select_mode.pack(fill=X, pady=8)
         self.cbb_select_mode.current(0)
 
-        self.ckb_is_allow_odd_var = BooleanVar()
-        self.ckb_is_allow_odd = tk.Checkbutton(
-            self.frm_left,
-            text='是否允许奇偶比',
-            variable=self.ckb_is_allow_odd_var,
-            onvalue=True,
-            offvalue=False)
-        self.ckb_is_allow_odd.pack(fill=X)
-
         self.lb_select_mode = tk.Label(self.frm_left, anchor=W, text='奇偶比(可输入 奇数-偶数)')
         self.lb_select_mode.pack(fill=X)
 
@@ -266,6 +257,17 @@ class App(object):
         self.cbb_select_odd['value'] = ['2-4', '4-2', '1-5', '5-1', '3-3']
         self.cbb_select_odd.pack(fill=X, pady=8)
         self.cbb_select_odd.current(0)
+
+        self.ckb_is_allow_odd_var = BooleanVar()
+        self.ckb_is_allow_odd = tk.Checkbutton(
+            self.frm_left,
+            text='是否允许奇偶比',
+            font='12',
+            anchor=W,
+            variable=self.ckb_is_allow_odd_var,
+            onvalue=True,
+            offvalue=False)
+        self.ckb_is_allow_odd.pack(fill=X, pady=8)
 
         self.lb_opencode = tk.Label(self.frm_left, text='遗漏区间(25~35)')
         self.lb_opencode.pack()
@@ -303,10 +305,10 @@ class App(object):
         self.rb_lost_repeat_1 = tk.Radiobutton(self.frm_left_lost_repeat, text="1组", variable=self.rb_lost_repeat_cnt, value=1)
         self.rb_lost_repeat_2 = tk.Radiobutton(self.frm_left_lost_repeat, text="2组", variable=self.rb_lost_repeat_cnt, value=2)
         self.rb_lost_repeat_3 = tk.Radiobutton(self.frm_left_lost_repeat, text="3组", variable=self.rb_lost_repeat_cnt, value=3)
-        self.rb_lost_repeat_0.pack(side=LEFT, fill=X)
-        self.rb_lost_repeat_1.pack(side=LEFT, fill=X)
-        self.rb_lost_repeat_2.pack(side=LEFT, fill=X)
-        self.rb_lost_repeat_3.pack(side=LEFT, fill=X)
+        self.rb_lost_repeat_0.pack(side=LEFT, fill=X, expand=True)
+        self.rb_lost_repeat_1.pack(side=LEFT, fill=X, expand=True)
+        self.rb_lost_repeat_2.pack(side=LEFT, fill=X, expand=True)
+        self.rb_lost_repeat_3.pack(side=LEFT, fill=X, expand=True)
 
         self.btn_select_code = tk.Button(self.frm_left, text='清空已选记录', font='16', fg='DarkOrange', bg='RoyalBlue', command=self.__clear_select_code)
         self.btn_select_code.pack(fill=X, pady=8)
@@ -395,7 +397,6 @@ class App(object):
         lvl_6_cnt = 0
         for selected_code_str in self._lottery.selectedcodes:
             selected_code = [int(num) for num in (selected_code_str.split())]
-            print(selected_code, cur_lottery_codes)
             if len(set(cur_lottery_codes) & set(selected_code)) == 6:
                 lvl_6_cnt += 1
             elif len(set(cur_lottery_codes) & set(selected_code)) == 5:
