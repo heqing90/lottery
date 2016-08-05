@@ -42,11 +42,13 @@ else:
 class LotteryQurey(object):
     """docstring for LotteryQurey"""
     DB_FILE = os.path.join(os.path.dirname(__file__), 'lottery.json')
+    DB_SELECTED_FILE = os.path.join(os.path.dirname(__file__), 'last_selected.json')
     QUERY_URL = 'http://f.apiplus.cn/ssq-50.json'
     DEFAULT_CODE = [num for num in range(1, 34)]
 
     def __init__(self):
         self._data = {}
+        self._selected_codes = []
         self.__load()
 
     def refresh(self):
@@ -60,6 +62,15 @@ class LotteryQurey(object):
             self.__save()
         except Exception as e:
             print('ERROR: cannot get the new info from internet.[{err}]'.format(err=e))
+
+    def save_selected_codes(self, seleced_codes):
+        try:
+            save_data = {'last_selected': seleced_codes}
+            self._selected_codes = list(seleced_codes)
+            with open(self.DB_SELECTED_FILE, 'w') as fd:
+                json.dump(save_data, fd)
+        except Exception as e:
+            print('ERROR: Cannot save seleted codes![{e}]'.format(e))
 
     def __parse_data(self, data):
         lotteries = {}
@@ -81,6 +92,10 @@ class LotteryQurey(object):
                     self._data = json.load(fd)
             # update data from internet
             self.refresh()
+            if os.path.exists(self.DB_SELECTED_FILE):
+                with open(self.DB_SELECTED_FILE, 'r') as fd:
+                    save_data = json.load(fd)
+                    self._selected_codes = save_data.get('last_selected', [])
         except Exception as e:
             print('ERROR: cannot get the new info from local.[{err}]'.format(err=e))
 
@@ -109,6 +124,10 @@ class LotteryQurey(object):
     @property
     def allcode(self):
         return self.DEFAULT_CODE
+
+    @property
+    def selectedcodes(self):
+        return self._selected_codes
 
 
 class CombinationsTool(object):
@@ -200,6 +219,7 @@ class App(object):
             self.__initialize_left()
             self.__initialize_right()
             self.__initialize_right_bottom()
+            self.__load_local_data()
             self.__refresh_view()
         except Exception as e:
             raise e
@@ -288,8 +308,14 @@ class App(object):
         self.rb_lost_repeat_2.pack(side=LEFT, fill=X)
         self.rb_lost_repeat_3.pack(side=LEFT, fill=X)
 
+        self.btn_select_code = tk.Button(self.frm_left, text='清空已选记录', font='16', fg='DarkOrange', bg='RoyalBlue', command=self.__clear_select_code)
+        self.btn_select_code.pack(fill=X, pady=8)
+
         self.btn_select_code = tk.Button(self.frm_left, text='开 始 选 号', font='16', bg='Orange', command=self.__select_code)
         self.btn_select_code.pack(fill=X, pady=8)
+
+        self.btn_save_select_code = tk.Button(self.frm_left, text='保 存 结 果', font='16', bg='FireBrick', command=self.__save_select_code)
+        self.btn_save_select_code.pack(fill=X, pady=8)
 
     def __initialize_right(self):
         self.frm_right = tk.LabelFrame(self.root)
@@ -302,7 +328,8 @@ class App(object):
         self.tf_oepncode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 16', fg='OrangeRed2', bg='ghost white', textvariable=self.tf_opencode_var)
         self.tf_oepncode.pack(fill=X)
 
-        self.lb_lostcode = tk.Label(self.frm_right, text='遗漏号码(上期遗漏次数):')
+        self.lb_lostcode_var = StringVar()
+        self.lb_lostcode = tk.Label(self.frm_right, textvariable=self.lb_lostcode_var)
         self.lb_lostcode.pack(fill=X)
         self.tf_lostcode_var = StringVar()
         self.tf_lostcode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 16', fg='SteelBlue', bg='ghost white', textvariable=self.tf_lostcode_var)
@@ -351,11 +378,39 @@ class App(object):
         print('refresh from internet')
         self._lottery.refresh()
 
+    def __load_local_data(self):
+        for item in self._lottery.selectedcodes:
+            self.list_selectcode_out.insert(END, item)
+
     def __refresh_view(self):
         lostcode = self.__calculate_lost_current()
         lost_code_str = '  '.join(['{num}({cnt})'.format(num=elem[0], cnt=elem[1]) for elem in lostcode])
         lost_code_sum_str = '合={sum}'.format(sum=sum([elem[1] for elem in lostcode]))
         self.tf_opencode_var.set(','.join([lost_code_str, lost_code_sum_str]))
+        # show lottery
+        cur_lottery_codes = self.__get_current_opencode()
+        lvl_3_cnt = 0
+        lvl_4_cnt = 0
+        lvl_5_cnt = 0
+        lvl_6_cnt = 0
+        for selected_code_str in self._lottery.selectedcodes:
+            selected_code = [int(num) for num in (selected_code_str.split())]
+            print(selected_code, cur_lottery_codes)
+            if len(set(cur_lottery_codes) & set(selected_code)) == 6:
+                lvl_6_cnt += 1
+            elif len(set(cur_lottery_codes) & set(selected_code)) == 5:
+                lvl_5_cnt += 1
+            elif len(set(cur_lottery_codes) & set(selected_code)) == 4:
+                lvl_4_cnt += 1
+            elif len(set(cur_lottery_codes) & set(selected_code)) == 3:
+                lvl_3_cnt += 1
+        self.lb_lostcode_var.set('上期中奖结果(共 {cnt} 注)'.format(cnt=sum([lvl_3_cnt, lvl_4_cnt, lvl_5_cnt, lvl_6_cnt])))
+        show_str = '中6球 [{cnt_6}] 注, 中5球 [{cnt_5}] 注, 中4球 [{cnt_4}] 注, 中3球 [{cnt_3}] 注'.format(
+            cnt_6=lvl_6_cnt,
+            cnt_5=lvl_5_cnt,
+            cnt_4=lvl_4_cnt,
+            cnt_3=lvl_3_cnt)
+        self.tf_lostcode_var.set(show_str)
 
     def __refresh_selection_results_tips(self):
         cnt = self.list_selectcode.size()
@@ -363,9 +418,6 @@ class App(object):
         self.lb_selectcode_var.set('选号结果: 共 {count} 注, 已选取 {selectedcnt} 注.(双击选中或选中+空格，可以(反)选取号码), 退格键(BackSpace)可删除已选'.format(count=cnt, selectedcnt=selected_cnt))
 
     def __calculate_lost_current(self):
-        print('__calculate_lost_current')
-        # cur_edition = self.cbb_edition.get()
-        # lottery = self._lottery.data[cur_edition]
         return self.__calculate_lost_code(self.__get_current_opencode(), is_cur_lost=True)
 
     def __get_current_opencode(self):
@@ -409,7 +461,6 @@ class App(object):
         return lost_lottery_code
 
     def __select_code(self):
-        print('start to select code')
         self.list_selectcode.delete(0, self.list_selectcode.size() - 1)
         lost_select_code = CombinationsTool.get(
             self.cbb_select_mode_var.get(),
@@ -425,8 +476,15 @@ class App(object):
             # show_str = '{codes}, {sum}'.format(codes=code_str, sum=code[1])
             show_str = '{codes}'.format(codes=code_str)
             self.list_selectcode.insert(END, show_str)
-
         self.__refresh_selection_results_tips()
+
+    def __save_select_code(self):
+        selected_out_codes = self.list_selectcode_out.get(0, END)
+        self._lottery.save_selected_codes(selected_out_codes)
+
+    def __clear_select_code(self):
+        self.list_selectcode_out.delete(0, END)
+        self.__save_select_code()
 
     def __select_all_electcodes(self, event):
         self.list_selectcode.select_set(0, END)
@@ -477,6 +535,7 @@ class App(object):
                 delete_idx += 1
             self.list_selectcode_out.delete(delete_idx)
         self.__refresh_selection_results_tips()
+
 
 app = App()
 app.root.mainloop()
