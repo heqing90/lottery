@@ -26,7 +26,7 @@ from itertools import combinations
 import random
 import sys
 print(sys.version)
-PY2X= sys.version_info[0]
+PY2X = sys.version_info[0]
 if PY2X:
     import Tkinter as tk
     import ttk
@@ -330,6 +330,12 @@ class App(object):
         self.tf_oepncode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 16', fg='OrangeRed2', bg='ghost white', textvariable=self.tf_opencode_var)
         self.tf_oepncode.pack(fill=X)
 
+        self.lb_curr_all_lostcode = tk.Label(self.frm_right, text='本期全号遗漏:')
+        self.lb_curr_all_lostcode.pack()
+        self.tf_curr_all_lostcode_var = StringVar()
+        self.tf_curr_all_lostcode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 10', fg='HotPink', bg='ghost white', textvariable=self.tf_curr_all_lostcode_var)
+        self.tf_curr_all_lostcode.pack(fill=X)
+
         self.lb_lostcode_var = StringVar()
         self.lb_lostcode = tk.Label(self.frm_right, textvariable=self.lb_lostcode_var)
         self.lb_lostcode.pack(fill=X)
@@ -412,6 +418,11 @@ class App(object):
             cnt_4=lvl_4_cnt,
             cnt_3=lvl_3_cnt)
         self.tf_lostcode_var.set(show_str)
+
+        lostcode = self.__calculate_lost_all()
+        lost_code_str = '  '.join(['{num}({cnt})'.format(num=elem[0], cnt=elem[1]) for elem in lostcode])
+        lost_code_sum_str = '合={sum}'.format(sum=sum([elem[1] for elem in lostcode]))
+        self.tf_curr_all_lostcode_var.set(','.join([lost_code_str, lost_code_sum_str]))
 
     def __refresh_selection_results_tips(self):
         cnt = self.list_selectcode.size()
