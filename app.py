@@ -26,7 +26,7 @@ from itertools import combinations
 import random
 import sys
 print(sys.version)
-PY2X = sys.version_info[0]
+PY2X = sys.version_info[0] == 2
 if PY2X:
     import Tkinter as tk
     import ttk
