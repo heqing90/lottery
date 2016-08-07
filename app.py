@@ -133,7 +133,7 @@ class LotteryQurey(object):
 class CombinationsTool(object):
 
     @classmethod
-    def get(cls, select_mode, open_code, all_lost_code, min_lost, max_lost, repeat_cnt, repeat_team_max_cnt, odd_cnt):
+    def get(cls, select_mode, open_code, all_lost_code, min_lost, max_lost, repeat_cnt, repeat_team_max_cnt, odd_cnt, min_opensum, max_opensum):
         """Low:1-11, mid:12-22, high:23-33
 
         Args:
@@ -185,6 +185,8 @@ class CombinationsTool(object):
                         odd_numbers = [num for num in calulate_arr if num % 2 != 0]
                         if len(odd_numbers) != odd_cnt:
                             continue
+                    if max_opensum != 0 and (sum(calulate_arr) < min_opensum or sum(calulate_arr) > max_opensum):
+                        continue
                     if lost_sum >= min_lost and lost_sum <= max_lost and \
                         len(set(calulate_arr) & set(open_code)) <= repeat_cnt:
                         results.append([calulate_arr, lost_sum])
@@ -271,10 +273,8 @@ class App(object):
 
         self.lb_opencode = tk.Label(self.frm_left, text='遗漏区间(25~35)')
         self.lb_opencode.pack()
-
         self.frm_left_lost_range = tk.LabelFrame(self.frm_left)
         self.frm_left_lost_range.pack()
-
         self.tf_range_min_var = StringVar()
         self.tf_range_min = tk.Entry(self.frm_left_lost_range, justify=CENTER, textvariable=self.tf_range_min_var)
         self.tf_range_min.pack(side=LEFT)
@@ -283,9 +283,25 @@ class App(object):
         self.tf_range_max_var = StringVar()
         self.tf_range_max = tk.Entry(self.frm_left_lost_range, justify=CENTER, textvariable=self.tf_range_max_var)
         self.tf_range_max.pack(side=LEFT)
-
         self.tf_range_min_var.set('25')
         self.tf_range_max_var.set('35')
+
+        self.lb_opencode_sum = tk.Label(self.frm_left, text='开奖和值区间(0~0表示不启用))')
+        self.lb_opencode_sum.pack()
+        self.frm_left_opensum_range = tk.LabelFrame(self.frm_left)
+        self.frm_left_opensum_range.pack()
+        self.tf_range_sum_min_var = IntVar()
+        self.tf_range_sum_min = tk.Entry(self.frm_left_opensum_range, justify=CENTER, textvariable=self.tf_range_sum_min_var)
+        self.tf_range_sum_min.pack(side=LEFT)
+        self.lb_opencode_sum = tk.Label(self.frm_left_opensum_range, text='~~~')
+        self.lb_opencode_sum.pack(side=LEFT)
+        self.tf_range_sum_max_var = IntVar()
+        self.tf_range_sum_max = tk.Entry(self.frm_left_opensum_range, justify=CENTER, textvariable=self.tf_range_sum_max_var)
+        self.tf_range_sum_max.pack(side=LEFT)
+        self.tf_range_sum_min_var.set('0')
+        self.tf_range_sum_max_var.set('0')
+
+
 
         self.lb_repeat_cnt = tk.Label(self.frm_left, text='和本期开奖号码最大重复数:')
         self.lb_repeat_cnt.pack()
@@ -393,7 +409,7 @@ class App(object):
     def __refresh_view(self):
         lostcode = self.__calculate_lost_current()
         lost_code_str = '  '.join(['{num}({cnt})'.format(num=elem[0], cnt=elem[1]) for elem in lostcode])
-        lost_code_sum_str = '合={sum}'.format(sum=sum([elem[1] for elem in lostcode]))
+        lost_code_sum_str = '合={sum}({lostsum})'.format(sum=sum([elem[0] for elem in lostcode]), lostsum=sum([elem[1] for elem in lostcode]))
         self.tf_opencode_var.set(','.join([lost_code_str, lost_code_sum_str]))
         # show lottery
         cur_lottery_codes = self.__get_current_opencode()
@@ -482,7 +498,9 @@ class App(object):
             int(self.tf_range_max_var.get()),
             int(self.tf_repeat_cnt_var.get()),
             self.rb_lost_repeat_cnt.get(),
-            int(self.cbb_select_odd_var.get().split('-')[0]) if self.ckb_is_allow_odd_var.get() else -1)
+            int(self.cbb_select_odd_var.get().split('-')[0]) if self.ckb_is_allow_odd_var.get() else -1,
+            self.tf_range_sum_min_var.get(),
+            self.tf_range_sum_max_var.get())
         for code in lost_select_code:
             code_str = '  '.join([str(elem) for elem in code[0]])
             # show_str = '{codes}, {sum}'.format(codes=code_str, sum=code[1])
