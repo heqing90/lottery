@@ -30,11 +30,13 @@ PY2X = sys.version_info[0] == 2
 if PY2X:
     import Tkinter as tk
     import ttk
+    import tkMessageBox as tkmsgbox
     from Tkinter import *
     import urllib
 else:
     import tkinter as tk
     from tkinter import ttk
+    from tkinter import messagebox as tkmsgbox
     from tkinter import *
     import urllib.request
 
@@ -388,6 +390,7 @@ class App(object):
         self.list_selectcode_out.bind('<Double-Button-1>', self.__doubleclick_on_selectcodes_out_list)
         self.list_selectcode_out.bind('<space>', self.__doubleclick_on_selectcodes_out_list)
         self.list_selectcode_out.bind('<BackSpace>', self.__delete_on_selectcodes_out_list)
+        self.list_selectcode_out.bind('<Control-v>', self.__paste_selectedcodes_out)
 
     def __edition_change(self, event):
         print('edition changed!:{args}'.format(args=event))
@@ -488,7 +491,7 @@ class App(object):
                 break
         return lost_lottery_code
 
-    def codes_to_lottery(self, codes):
+    def __codes_to_lottery(self, codes):
         return '  '.join(['{0:0>2}'.format(elem) for elem in codes])
 
     def __select_code(self):
@@ -505,7 +508,7 @@ class App(object):
             self.tf_range_sum_min_var.get(),
             self.tf_range_sum_max_var.get())
         for code in lost_select_code:
-            self.list_selectcode.insert(END, self.codes_to_lottery(code[0]))
+            self.list_selectcode.insert(END, self.__codes_to_lottery(code[0]))
         self.__refresh_selection_results_tips()
 
     def __save_select_code(self):
@@ -521,6 +524,17 @@ class App(object):
 
     def __select_all_electcodes_out(self, event):
         self.list_selectcode_out.select_set(0, END)
+
+    def __paste_selectedcodes_out(self, event):
+        print('__paste_selectedcodes_out: ')
+        selected_codes = self.root.clipboard_get()
+        print('{selectedcodes}'.format(selectedcodes=selected_codes))
+        lotteries = selected_codes.split('\n')
+        try:
+            for lottery in lotteries:
+                self.list_selectcode_out.insert(END, self.__codes_to_lottery([int(elem) for elem in lottery.split()]))
+        except:
+            tkmsgbox.showerror('不符合粘贴格式', '示例:\n{err}'.format(err='01 02 03 04 05 06\n01 02 03 04 04 06'))
 
     def __doubleclick_on_selectcods_list(self, event):
         indexs = list(self.list_selectcode.curselection())
