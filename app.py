@@ -488,6 +488,9 @@ class App(object):
                 break
         return lost_lottery_code
 
+    def codes_to_lottery(self, codes):
+        return '  '.join(['{0:0>2}'.format(elem) for elem in codes])
+
     def __select_code(self):
         self.list_selectcode.delete(0, self.list_selectcode.size() - 1)
         lost_select_code = CombinationsTool.get(
@@ -502,10 +505,7 @@ class App(object):
             self.tf_range_sum_min_var.get(),
             self.tf_range_sum_max_var.get())
         for code in lost_select_code:
-            code_str = '  '.join([str(elem) for elem in code[0]])
-            # show_str = '{codes}, {sum}'.format(codes=code_str, sum=code[1])
-            show_str = '{codes}'.format(codes=code_str)
-            self.list_selectcode.insert(END, show_str)
+            self.list_selectcode.insert(END, self.codes_to_lottery(code[0]))
         self.__refresh_selection_results_tips()
 
     def __save_select_code(self):
