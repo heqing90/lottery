@@ -348,12 +348,14 @@ class App(object):
 
         self.tf_opencode_var = StringVar()
         self.tf_oepncode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 16', fg='OrangeRed2', bg='ghost white', textvariable=self.tf_opencode_var)
+        self.tf_oepncode['state'] = 'readonly'
         self.tf_oepncode.pack(fill=X)
 
         self.lb_curr_all_lostcode = tk.Label(self.frm_right, text='本期全号遗漏:')
         self.lb_curr_all_lostcode.pack()
         self.tf_curr_all_lostcode_var = StringVar()
         self.tf_curr_all_lostcode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 10', fg='HotPink', bg='ghost white', textvariable=self.tf_curr_all_lostcode_var)
+        self.tf_curr_all_lostcode['state'] = 'readonly'
         self.tf_curr_all_lostcode.pack(fill=X)
 
         self.lb_lostcode_var = StringVar()
@@ -361,6 +363,7 @@ class App(object):
         self.lb_lostcode.pack(fill=X)
         self.tf_lostcode_var = StringVar()
         self.tf_lostcode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 16', fg='SteelBlue', bg='ghost white', textvariable=self.tf_lostcode_var)
+        self.tf_lostcode['state'] = 'readonly'
         self.tf_lostcode.pack(fill=X)
 
         self.lb_selectcode_var = StringVar()
@@ -395,7 +398,6 @@ class App(object):
         self.list_selectcode_out.bind('<Control-v>', self.__paste_selectedcodes_out)
 
     def __edition_change(self, event):
-        print('edition changed!:{args}'.format(args=event))
         self.__refresh_view()
 
     def __get_current_lottery(self):
@@ -404,7 +406,6 @@ class App(object):
         return lottery
 
     def __refresh_raw_data(self):
-        print('refresh from internet')
         self._lottery.refresh()
 
     def __load_local_data(self):
@@ -594,9 +595,6 @@ class App(object):
         if self.list_selectcode_out.size() > 0:
             saved_selected_codes = set(self._lottery.selectedcodes)
             unsaved_selected_codes = set(self.list_selectcode_out.get(0, END))
-            print(saved_selected_codes, len(saved_selected_codes))
-            print(unsaved_selected_codes)
-            print(len(saved_selected_codes | unsaved_selected_codes))
             if len(saved_selected_codes | unsaved_selected_codes) != len(saved_selected_codes):
                 return True
         return False
@@ -607,5 +605,6 @@ class App(object):
                 self.root.destroy()
         else:
             self.root.destroy()
+
 
 App.main()
