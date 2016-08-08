@@ -200,21 +200,25 @@ class CombinationsTool(object):
 
 
 class App(object):
-    def __init__(self):
-        self.root = tk.Tk()
-        self.root.grid_columnconfigure(0, weight=1)
-        # self.root.grid_rowconfigure(0, weight=1)
-        self.style = ttk.Style()
-        available_themes = self.style.theme_names()
+
+    @classmethod
+    def main(cls):
+        root = tk.Tk()
+        root.grid_columnconfigure(0, weight=1)
+        style = ttk.Style()
+        available_themes = style.theme_names()
         random_theme = random.choice(available_themes)
-        # xpnative
-        self.style.theme_use(random_theme)
-        self.root.title('遗漏选号谦哥版')
-        # w = self.root.winfo_screenwidth()
-        # h = self.root.winfo_screenheight()
+        style.theme_use(random_theme)
+        root.title('遗漏选号谦哥版')
         w = 1000
         h = 750
-        self.root.geometry("%dx%d" % (w, h))
+        root.geometry("%dx%d" % (w, h))
+        app = cls(root)
+        root.protocol("WM_DELETE_WINDOW", app.__on_closing_window)
+        root.mainloop()
+
+    def __init__(self, root):
+        self.root = root
         self._lottery = LotteryQurey()
         self.__initialize_components()
 
@@ -583,6 +587,11 @@ class App(object):
             self.list_selectcode_out.delete(delete_idx)
         self.__refresh_selection_results_tips()
 
+    def __on_closing_window(self):
+        if self.list_selectcode_out.size() > 0:
+            if tkmsgbox.askokcancel('退出', "有未保存的选注结果, 确认要退出？"):
+                self.root.destroy()
+        else:
+            self.root.destroy()
 
-app = App()
-app.root.mainloop()
+App.main()
