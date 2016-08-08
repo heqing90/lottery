@@ -525,6 +525,9 @@ class App(object):
         lotteries = selected_codes.split('\n')
         try:
             for lottery in lotteries:
+                lottery = lottery.strip()
+                if lottery == '':
+                    continue
                 self.list_selectcode_out.insert(END, self.__codes_to_lottery([int(elem) for elem in lottery.split()]))
             self.__save_select_code()
             self.__refresh_bingo_selectedcodes_tips()
