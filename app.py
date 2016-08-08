@@ -303,8 +303,6 @@ class App(object):
         self.tf_range_sum_min_var.set('0')
         self.tf_range_sum_max_var.set('0')
 
-
-
         self.lb_repeat_cnt = tk.Label(self.frm_left, text='和本期开奖号码最大重复数:')
         self.lb_repeat_cnt.pack()
 
@@ -415,11 +413,15 @@ class App(object):
         lost_code_sum_str = '合={sum}({lostsum})'.format(sum=sum([elem[0] for elem in lostcode]), lostsum=sum([elem[1] for elem in lostcode]))
         self.tf_opencode_var.set(','.join([lost_code_str, lost_code_sum_str]))
         # show lottery
-        cur_lottery_codes = self.__get_current_opencode()
+        self.__refresh_bingo_selectedcodes_tips()
+        self.__refresh_selection_results_tips()
+
+    def __refresh_bingo_selectedcodes_tips(self):
         lvl_3_cnt = 0
         lvl_4_cnt = 0
         lvl_5_cnt = 0
         lvl_6_cnt = 0
+        cur_lottery_codes = self.__get_current_opencode()
         for selected_code_str in self._lottery.selectedcodes:
             selected_code = [int(num) for num in (selected_code_str.split())]
             if len(set(cur_lottery_codes) & set(selected_code)) == 6:
@@ -437,7 +439,6 @@ class App(object):
             cnt_4=lvl_4_cnt,
             cnt_3=lvl_3_cnt)
         self.tf_lostcode_var.set(show_str)
-
         lostcode = self.__calculate_lost_all()
         lost_code_str = '  '.join(['{num}({cnt})'.format(num=elem[0], cnt=elem[1]) for elem in lostcode])
         lost_code_sum_str = '合={sum}'.format(sum=sum([elem[1] for elem in lostcode]))
@@ -526,14 +527,16 @@ class App(object):
         self.list_selectcode_out.select_set(0, END)
 
     def __paste_selectedcodes_out(self, event):
-        print('__paste_selectedcodes_out: ')
         selected_codes = self.root.clipboard_get()
-        print('{selectedcodes}'.format(selectedcodes=selected_codes))
         lotteries = selected_codes.split('\n')
         try:
             for lottery in lotteries:
                 self.list_selectcode_out.insert(END, self.__codes_to_lottery([int(elem) for elem in lottery.split()]))
-        except:
+            self.__save_select_code()
+            self.__refresh_bingo_selectedcodes_tips()
+        except Exception as e:
+            print('ERROR DATA: {data}'.format(data=selected_codes))
+            print('ERROR: {err}'.format(err=e))
             tkmsgbox.showerror('不符合粘贴格式', '示例:\n{err}'.format(err='01 02 03 04 05 06\n01 02 03 04 04 06'))
 
     def __doubleclick_on_selectcods_list(self, event):
