@@ -587,8 +587,19 @@ class App(object):
             self.list_selectcode_out.delete(delete_idx)
         self.__refresh_selection_results_tips()
 
-    def __on_closing_window(self):
+    def __has_unsaved_selected_codes(self):
         if self.list_selectcode_out.size() > 0:
+            saved_selected_codes = set(self._lottery.selectedcodes)
+            unsaved_selected_codes = set(self.list_selectcode_out.get(0, END))
+            print(saved_selected_codes, len(saved_selected_codes))
+            print(unsaved_selected_codes)
+            print(len(saved_selected_codes | unsaved_selected_codes))
+            if len(saved_selected_codes | unsaved_selected_codes) != len(saved_selected_codes):
+                return True
+        return False
+
+    def __on_closing_window(self):
+        if self.__has_unsaved_selected_codes() > 0:
             if tkmsgbox.askokcancel('退出', "有未保存的选注结果, 确认要退出？"):
                 self.root.destroy()
         else:
