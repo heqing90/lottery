@@ -27,18 +27,11 @@ import random
 import sys
 print(sys.version)
 PY2X = sys.version_info[0] == 2
-if PY2X:
-    import Tkinter as tk
-    import ttk
-    import tkMessageBox as tkmsgbox
-    from Tkinter import *
-    import urllib
-else:
-    import tkinter as tk
-    from tkinter import ttk
-    from tkinter import messagebox as tkmsgbox
-    from tkinter import *
-    import urllib.request
+import Tkinter as tk
+import tkMessageBox as tkmsgbox
+import ttk
+from Tkinter import *
+import urllib
 
 
 class LotteryQurey(object):
@@ -55,10 +48,7 @@ class LotteryQurey(object):
 
     def refresh(self):
         try:
-            if PY2X:
-                data = urllib.urlopen(self.QUERY_URL).read().decode('utf-8')
-            else:
-                data = urllib.request.urlopen(self.QUERY_URL).read().decode('utf-8')
+            data = urllib.urlopen(self.QUERY_URL).read().decode('utf-8')
             data = json.loads(data)['data']
             self.__parse_data(data)
             self.__save()
