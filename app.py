@@ -180,7 +180,10 @@ class CombinationsTool(object):
                             is_continue = True
                             break
                         elif repeat_count > 1:
-                            repeat_team_cnt += 1
+                            serial_arr = list(range(calulate_arr[index], calulate_arr[index] + 2))
+                            repeat_count = len(set(serial_arr) & set(calulate_arr))
+                            if repeat_count == 2:
+                                repeat_team_cnt += 1
                     if is_continue is True or repeat_team_cnt != repeat_team_max_cnt:
                         continue
                     if odd_cnt > -1:
