@@ -125,7 +125,7 @@ class LotteryQurey(object):
 class CombinationsTool(object):
 
     @classmethod
-    def get(cls, select_mode, open_code, all_lost_code, min_lost, max_lost, repeat_cnt, repeat_team_max_cnt, odd_cnt, min_opensum, max_opensum):
+    def get(cls, select_mode, open_code, all_lost_code, min_lost, max_lost, repeat_cnt, repeat_team_max_cnt, odd_cnt, min_opensum, max_opensum, contains_codes):
         """Low:1-11, mid:12-22, high:23-33
 
         Args:
@@ -160,6 +160,9 @@ class CombinationsTool(object):
                     calulate_arr.extend(tmp_high)
                     lost_sum = sum([all_lost_code[elem - 1][1] for elem in calulate_arr])
                     calulate_arr.sort()
+                    if len(contains_codes) > 0:
+                        if len(set(contains_codes) & set(calulate_arr)) != len(contains_codes):
+                            continue
                     is_continue = False
                     repeat_team_cnt = 0
                     for index in range(5):
@@ -302,11 +305,16 @@ class App(object):
 
         self.lb_repeat_cnt = tk.Label(self.frm_left, text='和本期开奖号码最大重复数:')
         self.lb_repeat_cnt.pack()
-
         self.tf_repeat_cnt_var = StringVar()
         self.tf_repeat_cnt = tk.Entry(self.frm_left, justify=CENTER, textvariable=self.tf_repeat_cnt_var)
         self.tf_repeat_cnt.pack(fill=X)
         self.tf_repeat_cnt_var.set('2')
+
+        self.lb_contains_codes = tk.Label(self.frm_left, text='必含号码(多个用空格区分 1 2 3)')
+        self.lb_contains_codes.pack()
+        self.tf_contains_codes_var = StringVar()
+        self.tf_contains_codes = tk.Entry(self.frm_left, justify=CENTER, textvariable=self.tf_contains_codes_var)
+        self.tf_contains_codes.pack(fill=X)
 
         self.lb_opencode = tk.Label(self.frm_left, text='允许连号组数(3个以上连号排除)')
         self.lb_opencode.pack()
@@ -505,7 +513,9 @@ class App(object):
             self.rb_lost_repeat_cnt.get(),
             int(self.cbb_select_odd_var.get().split('-')[0]) if self.ckb_is_allow_odd_var.get() else -1,
             self.tf_range_sum_min_var.get(),
-            self.tf_range_sum_max_var.get())
+            self.tf_range_sum_max_var.get(),
+            [int(num) for num in self.tf_contains_codes_var.get().strip().split(' ')] if self.tf_contains_codes_var.get().strip() else [])
+
         for code in lost_select_code:
             self.list_selectcode.insert(END, self.__codes_to_lottery(code[0]))
         self.__refresh_selection_results_tips()
