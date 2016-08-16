@@ -213,8 +213,8 @@ class App(object):
         random_theme = random.choice(available_themes)
         style.theme_use(random_theme)
         root.title('遗漏选号谦哥版')
-        w = 1000
-        h = 750
+        w = 1200
+        h = 780
         root.geometry("%dx%d" % (w, h))
         app = cls(root)
         root.protocol("WM_DELETE_WINDOW", app.__on_closing_window)
@@ -388,7 +388,7 @@ class App(object):
         self.list_selectcode.bind('<Double-Button-1>', self.__doubleclick_on_selectcods_list)
         self.list_selectcode.bind('<space>', self.__doubleclick_on_selectcods_list)
 
-        self.list_selectcode_out = tk.Listbox(self.frm_right_bottom, font='Arial  16', fg='goldenrod1', bg='white smoke', selectmode=EXTENDED)
+        self.list_selectcode_out = tk.Listbox(self.frm_right_bottom, font='Arial  14', fg='goldenrod1', bg='white smoke', selectmode=EXTENDED)
         self.sb_selectcode_out = tk.Scrollbar(self.frm_right_bottom, orient=VERTICAL)
         self.list_selectcode_out.config(yscrollcommand=self.sb_selectcode_out.set)
         self.sb_selectcode_out.config(command=self.list_selectcode_out.yview)
@@ -449,7 +449,7 @@ class App(object):
                 self.list_selectcode_out.itemconfig(index, {'bg': 'white smoke', "fg": 'goldenrod1'})
             index += 1
         self.lb_lostcode_var.set('上期中奖结果(共 {cnt} 注)'.format(cnt=sum([lvl_3_cnt, lvl_4_cnt, lvl_5_cnt, lvl_6_cnt])))
-        show_str = '中6球 [{cnt_6}] 注, 中5球 [{cnt_5}] 注, 中4球 [{cnt_4}] 注, 中3球 [{cnt_3}] 注'.format(
+        show_str = '中6球 [{cnt_6}] 注<红色>, 中5球 [{cnt_5}] 注<黄色>, 中4球 [{cnt_4}] 注<蓝色>, 中3球 [{cnt_3}] 注<绿色>'.format(
             cnt_6=lvl_6_cnt,
             cnt_5=lvl_5_cnt,
             cnt_4=lvl_4_cnt,
