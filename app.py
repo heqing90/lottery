@@ -430,16 +430,24 @@ class App(object):
         lvl_5_cnt = 0
         lvl_6_cnt = 0
         cur_lottery_codes = self.__get_current_opencode()
+        index = 0
         for selected_code_str in self._lottery.selectedcodes:
             selected_code = [int(num) for num in (selected_code_str.split())]
             if len(set(cur_lottery_codes) & set(selected_code)) == 6:
                 lvl_6_cnt += 1
+                self.list_selectcode_out.itemconfig(index, {'bg': 'FireBrick', "fg": 'Black'})
             elif len(set(cur_lottery_codes) & set(selected_code)) == 5:
                 lvl_5_cnt += 1
+                self.list_selectcode_out.itemconfig(index, {'bg': 'DarkGoldenrod', "fg": 'Black'})
             elif len(set(cur_lottery_codes) & set(selected_code)) == 4:
                 lvl_4_cnt += 1
+                self.list_selectcode_out.itemconfig(index, {'bg': 'SteelBlue', "fg": 'Black'})
             elif len(set(cur_lottery_codes) & set(selected_code)) == 3:
                 lvl_3_cnt += 1
+                self.list_selectcode_out.itemconfig(index, {'bg': 'SeaGreen', "fg": 'Black'})
+            else:
+                self.list_selectcode_out.itemconfig(index, {'bg': 'white smoke', "fg": 'goldenrod1'})
+            index += 1
         self.lb_lostcode_var.set('上期中奖结果(共 {cnt} 注)'.format(cnt=sum([lvl_3_cnt, lvl_4_cnt, lvl_5_cnt, lvl_6_cnt])))
         show_str = '中6球 [{cnt_6}] 注, 中5球 [{cnt_5}] 注, 中4球 [{cnt_4}] 注, 中3球 [{cnt_3}] 注'.format(
             cnt_6=lvl_6_cnt,
