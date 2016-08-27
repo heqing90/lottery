@@ -397,6 +397,7 @@ class App(object):
         self.list_selectcode_out.bind('<space>', self.__doubleclick_on_selectcodes_out_list)
         self.list_selectcode_out.bind('<BackSpace>', self.__delete_on_selectcodes_out_list)
         self.list_selectcode_out.bind('<Control-v>', self.__paste_selectedcodes_out)
+        self.list_selectcode_out.bind('<Control-d>', self.__delete_bingo_selected_codes)
 
     def __edition_change(self, event):
         self.__refresh_view()
@@ -429,20 +430,25 @@ class App(object):
         lvl_6_cnt = 0
         cur_lottery_codes = self.__get_current_opencode()
         index = 0
+        self.__bingo_codes_indexs = []
         for selected_code_str in self._lottery.selectedcodes:
             selected_code = [int(num) for num in (selected_code_str.split())]
             if len(set(cur_lottery_codes) & set(selected_code)) == 6:
                 lvl_6_cnt += 1
                 self.list_selectcode_out.itemconfig(index, {'bg': 'FireBrick', "fg": 'Black'})
+                self.__bingo_codes_indexs.append(index)
             elif len(set(cur_lottery_codes) & set(selected_code)) == 5:
                 lvl_5_cnt += 1
                 self.list_selectcode_out.itemconfig(index, {'bg': 'DarkGoldenrod', "fg": 'Black'})
+                self.__bingo_codes_indexs.append(index)
             elif len(set(cur_lottery_codes) & set(selected_code)) == 4:
                 lvl_4_cnt += 1
                 self.list_selectcode_out.itemconfig(index, {'bg': 'SteelBlue', "fg": 'Black'})
+                self.__bingo_codes_indexs.append(index)
             elif len(set(cur_lottery_codes) & set(selected_code)) == 3:
                 lvl_3_cnt += 1
                 self.list_selectcode_out.itemconfig(index, {'bg': 'SeaGreen', "fg": 'Black'})
+                self.__bingo_codes_indexs.append(index)
             else:
                 self.list_selectcode_out.itemconfig(index, {'bg': 'white smoke', "fg": 'goldenrod1'})
             index += 1
@@ -461,7 +467,7 @@ class App(object):
     def __refresh_selection_results_tips(self):
         cnt = self.list_selectcode.size()
         selected_cnt = self.list_selectcode_out.size()
-        self.lb_selectcode_var.set('选号结果: 共 {count} 注, 已选取 {selectedcnt} 注.(双击选中或选中+空格，可以(反)选取号码), 退格键(BackSpace)可删除已选'.format(count=cnt, selectedcnt=selected_cnt))
+        self.lb_selectcode_var.set('选号结果: 共 {count} 注, 已选取 {selectedcnt} 注.(双击选中或选中+空格，可以(反)选取号码), 退格键(BackSpace)可删除已选, Ctrl+d删除与本期重复3个号码以上'.format(count=cnt, selectedcnt=selected_cnt))
 
     def __calculate_lost_current(self):
         return self.__calculate_lost_code(self.__get_current_opencode(), is_cur_lost=True)
@@ -531,6 +537,7 @@ class App(object):
     def __save_select_code(self):
         selected_out_codes = self.list_selectcode_out.get(0, END)
         self._lottery.save_selected_codes(selected_out_codes)
+        self.__refresh_bingo_selectedcodes_tips()
 
     def __clear_select_code(self):
         self.list_selectcode_out.delete(0, END)
@@ -552,7 +559,6 @@ class App(object):
                     continue
                 self.list_selectcode_out.insert(END, self.__codes_to_lottery([int(elem) for elem in lottery.split()]))
             self.__save_select_code()
-            self.__refresh_bingo_selectedcodes_tips()
         except Exception as e:
             print('ERROR DATA: {data}'.format(data=selected_codes))
             print('ERROR: {err}'.format(err=e))
@@ -567,12 +573,7 @@ class App(object):
             if len(indexs) == self.list_selectcode.size():
                 self.list_selectcode.delete(0, END)
             else:
-                delete_arr = range(indexs[0], indexs[-1] + 1)
-                delete_idx = indexs[0]
-                for index in indexs:
-                    if index not in delete_arr:
-                        delete_idx += 1
-                    self.list_selectcode.delete(delete_idx)
+                self.__delete_selected_codes(self.list_selectcode, indexs)
         self.__refresh_selection_results_tips()
 
     def __doubleclick_on_selectcodes_out_list(self, event):
@@ -584,23 +585,32 @@ class App(object):
             if len(indexs) == self.list_selectcode_out.size():
                 self.list_selectcode_out.delete(0, END)
             else:
-                delete_arr = range(indexs[0], indexs[-1] + 1)
-                delete_idx = indexs[0]
-                for index in indexs:
-                    if index not in delete_arr:
-                        delete_idx += 1
-                    self.list_selectcode_out.delete(delete_idx)
+                self.__delete_selected_codes(self.list_selectcode_out, indexs)
         self.__refresh_selection_results_tips()
 
     def __delete_on_selectcodes_out_list(self, event):
         indexs = list(self.list_selectcode_out.curselection())
-        delete_arr = range(indexs[0], indexs[-1] + 1)
-        delete_idx = indexs[0]
-        for index in indexs:
-            if index not in delete_arr:
-                delete_idx += 1
-            self.list_selectcode_out.delete(delete_idx)
+        self.__delete_selected_codes(self.list_selectcode_out, indexs)
         self.__refresh_selection_results_tips()
+
+    def __delete_bingo_selected_codes(self, event):
+        indexs = self.__bingo_codes_indexs
+        self.__delete_selected_codes(self.list_selectcode_out, indexs)
+        self.__save_select_code()
+
+    def __delete_selected_codes(self, listbox, indexs):
+        if len(indexs) == 1:
+            listbox.delete(indexs[0])
+        elif len(indexs) == listbox.size():
+            listbox.delete(0, END)
+        elif len(indexs) == len(range(indexs[0], indexs[-1] + 1)):
+            listbox.delete(indexs[0], indexs[-1])
+        else:
+            all_codes = listbox.get(0, END)
+            new_codes = [all_codes[index] for index in range(listbox.size()) if index not in indexs]
+            listbox.delete(0, END)
+            for codes in new_codes:
+                listbox.insert(END, codes)
 
     def __has_unsaved_selected_codes(self):
         if self.list_selectcode_out.size() > 0:
