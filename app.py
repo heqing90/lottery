@@ -197,6 +197,8 @@ class CombinationsTool(object):
 
 class App(object):
 
+    DB_SELECTED_CONF_FILE = os.path.join(os.path.dirname(__file__), 'select_conf.json')
+
     @classmethod
     def main(cls):
         root = tk.Tk()
@@ -217,6 +219,7 @@ class App(object):
         self.root = root
         self._lottery = LotteryQurey()
         self.__initialize_components()
+        self.__load_select_conf()
 
     def __initialize_components(self):
         try:
@@ -430,25 +433,20 @@ class App(object):
         lvl_6_cnt = 0
         cur_lottery_codes = self.__get_current_opencode()
         index = 0
-        self.__bingo_codes_indexs = []
         for selected_code_str in self._lottery.selectedcodes:
             selected_code = [int(num) for num in (selected_code_str.split())]
             if len(set(cur_lottery_codes) & set(selected_code)) == 6:
                 lvl_6_cnt += 1
                 self.list_selectcode_out.itemconfig(index, {'bg': 'FireBrick', "fg": 'Black'})
-                self.__bingo_codes_indexs.append(index)
             elif len(set(cur_lottery_codes) & set(selected_code)) == 5:
                 lvl_5_cnt += 1
                 self.list_selectcode_out.itemconfig(index, {'bg': 'DarkGoldenrod', "fg": 'Black'})
-                self.__bingo_codes_indexs.append(index)
             elif len(set(cur_lottery_codes) & set(selected_code)) == 4:
                 lvl_4_cnt += 1
                 self.list_selectcode_out.itemconfig(index, {'bg': 'SteelBlue', "fg": 'Black'})
-                self.__bingo_codes_indexs.append(index)
             elif len(set(cur_lottery_codes) & set(selected_code)) == 3:
                 lvl_3_cnt += 1
                 self.list_selectcode_out.itemconfig(index, {'bg': 'SeaGreen', "fg": 'Black'})
-                self.__bingo_codes_indexs.append(index)
             else:
                 self.list_selectcode_out.itemconfig(index, {'bg': 'white smoke', "fg": 'goldenrod1'})
             index += 1
@@ -464,10 +462,23 @@ class App(object):
         lost_code_sum_str = '合={sum}'.format(sum=sum([elem[1] for elem in lostcode]))
         self.tf_curr_all_lostcode_var.set(','.join([lost_code_str, lost_code_sum_str]))
 
+
+    def __get_last_20_repeat_selected_lottery(self):
+        bingo_codes_indexs = []
+        editions = self._lottery.edition[:20]
+        lotteries = [self._lottery.data[item]['redcode'] for item in editions]
+        index = 0
+        for selected_code_str in self._lottery.selectedcodes:
+            selected_code = [int(num) for num in (selected_code_str.split())]
+            if any(len(set(selected_code) & set(lottery)) > 2 for lottery in lotteries):
+                bingo_codes_indexs.append(index)
+            index += 1
+        return bingo_codes_indexs
+
     def __refresh_selection_results_tips(self):
         cnt = self.list_selectcode.size()
         selected_cnt = self.list_selectcode_out.size()
-        self.lb_selectcode_var.set('选号结果: 共 {count} 注, 已选取 {selectedcnt} 注.(双击选中或选中+空格，可以(反)选取号码), 退格键(BackSpace)可删除已选, Ctrl+d删除与本期重复3个号码以上'.format(count=cnt, selectedcnt=selected_cnt))
+        self.lb_selectcode_var.set('选号结果: 共 {count} 注, 已选取 {selectedcnt} 注.(双击选中或选中+空格，可以(反)选取号码), 退格键(BackSpace)可删除已选, Ctrl+d删除与近20期重复3个号码以上'.format(count=cnt, selectedcnt=selected_cnt))
 
     def __calculate_lost_current(self):
         return self.__calculate_lost_code(self.__get_current_opencode(), is_cur_lost=True)
@@ -538,6 +549,7 @@ class App(object):
         selected_out_codes = self.list_selectcode_out.get(0, END)
         self._lottery.save_selected_codes(selected_out_codes)
         self.__refresh_bingo_selectedcodes_tips()
+        self.__save_select_conf()
 
     def __clear_select_code(self):
         self.list_selectcode_out.delete(0, END)
@@ -594,12 +606,15 @@ class App(object):
         self.__refresh_selection_results_tips()
 
     def __delete_bingo_selected_codes(self, event):
-        indexs = self.__bingo_codes_indexs
+        indexs = self.__get_last_20_repeat_selected_lottery()
         self.__delete_selected_codes(self.list_selectcode_out, indexs)
         self.__save_select_code()
+        self.__refresh_selection_results_tips()
 
     def __delete_selected_codes(self, listbox, indexs):
-        if len(indexs) == 1:
+        if not indexs:
+            return
+        elif len(indexs) == 1:
             listbox.delete(indexs[0])
         elif len(indexs) == listbox.size():
             listbox.delete(0, END)
@@ -627,5 +642,37 @@ class App(object):
         else:
             self.root.destroy()
 
+    def __load_select_conf(self):
+        if not os.path.exists(self.DB_SELECTED_CONF_FILE):
+            return
+        with open(self.DB_SELECTED_CONF_FILE, 'r') as fd:
+            save_conf = json.load(fd)
+        if not save_conf:
+            return
+        self.cbb_select_mode_var.set(save_conf['cbb_select_mode_var'])
+        self.ckb_is_allow_odd_var.set(save_conf['ckb_is_allow_odd_var'])
+        self.cbb_select_odd_var.set(save_conf['cbb_select_odd_var'])
+        self.tf_range_min_var.set(save_conf['tf_range_min_var'])
+        self.tf_range_max_var.set(save_conf['tf_range_max_var'])
+        self.tf_repeat_cnt_var.set(save_conf['tf_repeat_cnt_var'])
+        self.rb_lost_repeat_cnt.set(save_conf['rb_lost_repeat_cnt'])
+        self.tf_range_sum_min_var.set(save_conf['tf_range_sum_min_var'])
+        self.tf_range_sum_max_var.set(save_conf['tf_range_sum_max_var'])
+        self.tf_contains_codes_var.set(save_conf['tf_contains_codes_var'])
+
+    def __save_select_conf(self):
+        save_conf = {}
+        save_conf['cbb_select_mode_var'] = self.cbb_select_mode_var.get()
+        save_conf['ckb_is_allow_odd_var'] = self.ckb_is_allow_odd_var.get()
+        save_conf['cbb_select_odd_var'] = self.cbb_select_odd_var.get()
+        save_conf['tf_range_min_var'] = self.tf_range_min_var.get()
+        save_conf['tf_range_max_var'] = self.tf_range_max_var.get()
+        save_conf['tf_repeat_cnt_var'] = self.tf_repeat_cnt_var.get()
+        save_conf['rb_lost_repeat_cnt'] = self.rb_lost_repeat_cnt.get()
+        save_conf['tf_range_sum_min_var'] = self.tf_range_sum_min_var.get()
+        save_conf['tf_range_sum_max_var'] = self.tf_range_sum_max_var.get()
+        save_conf['tf_contains_codes_var'] = self.tf_contains_codes_var.get()
+        with open(self.DB_SELECTED_CONF_FILE, 'w') as fd:
+            json.dump(save_conf, fd, indent=4, separators=(',', ': '))
 
 App.main()
