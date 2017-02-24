@@ -22,6 +22,7 @@ V2
 
 import json
 import os
+import re
 from itertools import combinations
 import random
 import sys
@@ -31,14 +32,14 @@ import Tkinter as tk
 import tkMessageBox as tkmsgbox
 import ttk
 from Tkinter import *
-import urllib
+import urllib2
 
 
 class LotteryQurey(object):
     """docstring for LotteryQurey"""
     DB_FILE = os.path.join(os.path.dirname(__file__), 'lottery.json')
     DB_SELECTED_FILE = os.path.join(os.path.dirname(__file__), 'last_selected.json')
-    QUERY_URL = 'http://f.apiplus.cn/ssq-50.json'
+    QUERY_URL_163 = 'http://trend.caipiao.163.com/ssq/historyPeriod.html?periodNumber=100'
     DEFAULT_CODE = [num for num in range(1, 34)]
 
     def __init__(self):
@@ -48,12 +49,29 @@ class LotteryQurey(object):
 
     def refresh(self):
         try:
-            data = urllib.urlopen(self.QUERY_URL).read().decode('utf-8')
-            data = json.loads(data)['data']
+            data = self.__get_data_163()
             self.__parse_data(data)
             self.__save()
         except Exception as e:
             print('ERROR: cannot get the new info from internet.[{err}]'.format(err=e))
+
+    def __get_data_163(self):
+        try:
+            html = urllib2.urlopen(self.QUERY_URL_163).read().decode('utf-8')
+            p = re.compile('data-period=\"(.*)\" data-award=\"(.*)\"')
+            codes = p.findall(html)
+            # print codes
+            data = []
+            for code in codes:
+                # print code
+                expect = code[0]
+                red_code = code[1].split(':')[0]
+                blue_code = code[1].split(':')[1]
+                item = {'expect': expect, 'redcode': red_code, 'bluecode': blue_code}
+                data.append(item)
+            return data
+        except Exception as e:
+            print ('ERROR: cannot get the data from 163.com. {}'.format(e))
 
     def save_selected_codes(self, seleced_codes):
         try:
@@ -62,20 +80,18 @@ class LotteryQurey(object):
             with open(self.DB_SELECTED_FILE, 'w') as fd:
                 json.dump(save_data, fd)
         except Exception as e:
-            print('ERROR: Cannot save seleted codes![{e}]'.format(e))
+            print('ERROR: Cannot save seleted codes! {}'.format(e))
 
     def __parse_data(self, data):
         lotteries = {}
-        for item in data:
-            lottery = {}
-            lottery['expect'] = item['expect']
-            # the last one is blue code.
-            lottery['code'] = [int(num) for elem in item['opencode'].split(',') for num in (elem.split('+') if '+' in elem else [elem])]
-            lottery['redcode'] = lottery['code'][:-1]
-            lottery['bluecode'] = lottery['code'][-1]
-            lottery['lostcode'] = list(set(self.DEFAULT_CODE) - set(lottery['redcode']))
-            lotteries[lottery['expect']] = lottery
-        self._data.update(lotteries)
+        try:
+            for item in data:
+                lottery = {'expect': item['expect'], 'redcode': [int(num) for num in item['redcode'].split()],
+                           'bluecode': int(item['bluecode'])}
+                lotteries[lottery['expect']] = lottery
+            self._data.update(lotteries)
+        except Exception as e:
+            print('ERROR: Cannot save parse codes!{}'.format(e))
 
     def __load(self):
         try:
@@ -99,7 +115,7 @@ class LotteryQurey(object):
                     os.remove(BK_FILE)
                 os.rename(self.DB_FILE, BK_FILE)
             with open(self.DB_FILE, 'w') as fd:
-                json.dump(self._data, fd)
+                json.dump(self._data, fd, indent=4, separators=(',', ': '))
         except Exception as e:
             raise e
 
