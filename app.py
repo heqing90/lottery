@@ -213,6 +213,8 @@ class CombinationsTool(object):
 
 class App(object):
 
+    DB_SELECTED_CONF_FILE = os.path.join(os.path.dirname(__file__), 'select_conf.json')
+
     @classmethod
     def main(cls):
         root = tk.Tk()
@@ -233,6 +235,7 @@ class App(object):
         self.root = root
         self._lottery = LotteryQurey()
         self.__initialize_components()
+        self.__load_select_conf()
 
     def __initialize_components(self):
         try:
@@ -413,6 +416,7 @@ class App(object):
         self.list_selectcode_out.bind('<space>', self.__doubleclick_on_selectcodes_out_list)
         self.list_selectcode_out.bind('<BackSpace>', self.__delete_on_selectcodes_out_list)
         self.list_selectcode_out.bind('<Control-v>', self.__paste_selectedcodes_out)
+        self.list_selectcode_out.bind('<Control-d>', self.__delete_bingo_selected_codes)
 
     def __edition_change(self, event):
         self.__refresh_view()
@@ -474,10 +478,23 @@ class App(object):
         lost_code_sum_str = '合={sum}'.format(sum=sum([elem[1] for elem in lostcode]))
         self.tf_curr_all_lostcode_var.set(','.join([lost_code_str, lost_code_sum_str]))
 
+
+    def __get_last_20_repeat_selected_lottery(self):
+        bingo_codes_indexs = []
+        editions = self._lottery.edition[:20]
+        lotteries = [self._lottery.data[item]['redcode'] for item in editions]
+        index = 0
+        for selected_code_str in self._lottery.selectedcodes:
+            selected_code = [int(num) for num in (selected_code_str.split())]
+            if any(len(set(selected_code) & set(lottery)) > 2 for lottery in lotteries):
+                bingo_codes_indexs.append(index)
+            index += 1
+        return bingo_codes_indexs
+
     def __refresh_selection_results_tips(self):
         cnt = self.list_selectcode.size()
         selected_cnt = self.list_selectcode_out.size()
-        self.lb_selectcode_var.set('选号结果: 共 {count} 注, 已选取 {selectedcnt} 注.(双击选中或选中+空格，可以(反)选取号码), 退格键(BackSpace)可删除已选'.format(count=cnt, selectedcnt=selected_cnt))
+        self.lb_selectcode_var.set('选号结果: 共 {count} 注, 已选取 {selectedcnt} 注.(双击选中或选中+空格，可以(反)选取号码), 退格键(BackSpace)可删除已选, Ctrl+d删除与近20期重复3个号码以上'.format(count=cnt, selectedcnt=selected_cnt))
 
     def __calculate_lost_current(self):
         return self.__calculate_lost_code(self.__get_current_opencode(), is_cur_lost=True)
@@ -547,6 +564,8 @@ class App(object):
     def __save_select_code(self):
         selected_out_codes = self.list_selectcode_out.get(0, END)
         self._lottery.save_selected_codes(selected_out_codes)
+        self.__refresh_bingo_selectedcodes_tips()
+        self.__save_select_conf()
 
     def __clear_select_code(self):
         self.list_selectcode_out.delete(0, END)
@@ -568,7 +587,6 @@ class App(object):
                     continue
                 self.list_selectcode_out.insert(END, self.__codes_to_lottery([int(elem) for elem in lottery.split()]))
             self.__save_select_code()
-            self.__refresh_bingo_selectedcodes_tips()
         except Exception as e:
             print('ERROR DATA: {data}'.format(data=selected_codes))
             print('ERROR: {err}'.format(err=e))
@@ -583,12 +601,7 @@ class App(object):
             if len(indexs) == self.list_selectcode.size():
                 self.list_selectcode.delete(0, END)
             else:
-                delete_arr = range(indexs[0], indexs[-1] + 1)
-                delete_idx = indexs[0]
-                for index in indexs:
-                    if index not in delete_arr:
-                        delete_idx += 1
-                    self.list_selectcode.delete(delete_idx)
+                self.__delete_selected_codes(self.list_selectcode, indexs)
         self.__refresh_selection_results_tips()
 
     def __doubleclick_on_selectcodes_out_list(self, event):
@@ -600,23 +613,35 @@ class App(object):
             if len(indexs) == self.list_selectcode_out.size():
                 self.list_selectcode_out.delete(0, END)
             else:
-                delete_arr = range(indexs[0], indexs[-1] + 1)
-                delete_idx = indexs[0]
-                for index in indexs:
-                    if index not in delete_arr:
-                        delete_idx += 1
-                    self.list_selectcode_out.delete(delete_idx)
+                self.__delete_selected_codes(self.list_selectcode_out, indexs)
         self.__refresh_selection_results_tips()
 
     def __delete_on_selectcodes_out_list(self, event):
         indexs = list(self.list_selectcode_out.curselection())
-        delete_arr = range(indexs[0], indexs[-1] + 1)
-        delete_idx = indexs[0]
-        for index in indexs:
-            if index not in delete_arr:
-                delete_idx += 1
-            self.list_selectcode_out.delete(delete_idx)
+        self.__delete_selected_codes(self.list_selectcode_out, indexs)
         self.__refresh_selection_results_tips()
+
+    def __delete_bingo_selected_codes(self, event):
+        indexs = self.__get_last_20_repeat_selected_lottery()
+        self.__delete_selected_codes(self.list_selectcode_out, indexs)
+        self.__save_select_code()
+        self.__refresh_selection_results_tips()
+
+    def __delete_selected_codes(self, listbox, indexs):
+        if not indexs:
+            return
+        elif len(indexs) == 1:
+            listbox.delete(indexs[0])
+        elif len(indexs) == listbox.size():
+            listbox.delete(0, END)
+        elif len(indexs) == len(range(indexs[0], indexs[-1] + 1)):
+            listbox.delete(indexs[0], indexs[-1])
+        else:
+            all_codes = listbox.get(0, END)
+            new_codes = [all_codes[index] for index in range(listbox.size()) if index not in indexs]
+            listbox.delete(0, END)
+            for codes in new_codes:
+                listbox.insert(END, codes)
 
     def __has_unsaved_selected_codes(self):
         if self.list_selectcode_out.size() > 0:
@@ -633,5 +658,37 @@ class App(object):
         else:
             self.root.destroy()
 
+    def __load_select_conf(self):
+        if not os.path.exists(self.DB_SELECTED_CONF_FILE):
+            return
+        with open(self.DB_SELECTED_CONF_FILE, 'r') as fd:
+            save_conf = json.load(fd)
+        if not save_conf:
+            return
+        self.cbb_select_mode_var.set(save_conf['cbb_select_mode_var'])
+        self.ckb_is_allow_odd_var.set(save_conf['ckb_is_allow_odd_var'])
+        self.cbb_select_odd_var.set(save_conf['cbb_select_odd_var'])
+        self.tf_range_min_var.set(save_conf['tf_range_min_var'])
+        self.tf_range_max_var.set(save_conf['tf_range_max_var'])
+        self.tf_repeat_cnt_var.set(save_conf['tf_repeat_cnt_var'])
+        self.rb_lost_repeat_cnt.set(save_conf['rb_lost_repeat_cnt'])
+        self.tf_range_sum_min_var.set(save_conf['tf_range_sum_min_var'])
+        self.tf_range_sum_max_var.set(save_conf['tf_range_sum_max_var'])
+        self.tf_contains_codes_var.set(save_conf['tf_contains_codes_var'])
+
+    def __save_select_conf(self):
+        save_conf = {}
+        save_conf['cbb_select_mode_var'] = self.cbb_select_mode_var.get()
+        save_conf['ckb_is_allow_odd_var'] = self.ckb_is_allow_odd_var.get()
+        save_conf['cbb_select_odd_var'] = self.cbb_select_odd_var.get()
+        save_conf['tf_range_min_var'] = self.tf_range_min_var.get()
+        save_conf['tf_range_max_var'] = self.tf_range_max_var.get()
+        save_conf['tf_repeat_cnt_var'] = self.tf_repeat_cnt_var.get()
+        save_conf['rb_lost_repeat_cnt'] = self.rb_lost_repeat_cnt.get()
+        save_conf['tf_range_sum_min_var'] = self.tf_range_sum_min_var.get()
+        save_conf['tf_range_sum_max_var'] = self.tf_range_sum_max_var.get()
+        save_conf['tf_contains_codes_var'] = self.tf_contains_codes_var.get()
+        with open(self.DB_SELECTED_CONF_FILE, 'w') as fd:
+            json.dump(save_conf, fd, indent=4, separators=(',', ': '))
 
 App.main()
