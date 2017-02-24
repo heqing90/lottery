@@ -22,10 +22,10 @@ V2
 
 import json
 import os
-import re
-from itertools import combinations
 import random
 import sys
+from itertools import combinations
+
 print(sys.version)
 PY2X = sys.version_info[0] == 2
 import Tkinter as tk
@@ -110,10 +110,10 @@ class LotteryQurey(object):
     def __save(self):
         try:
             if os.path.exists(self.DB_FILE):
-                BK_FILE = '{file}.bk'.format(file=self.DB_FILE)
-                if os.path.exists(BK_FILE):
-                    os.remove(BK_FILE)
-                os.rename(self.DB_FILE, BK_FILE)
+                back_file = '{file}.bk'.format(file=self.DB_FILE)
+                if os.path.exists(back_file):
+                    os.remove(back_file)
+                os.rename(self.DB_FILE, back_file)
             with open(self.DB_FILE, 'w') as fd:
                 json.dump(self._data, fd, indent=4, separators=(',', ': '))
         except Exception as e:
@@ -139,19 +139,22 @@ class LotteryQurey(object):
 
 
 class CombinationsTool(object):
-
     @classmethod
-    def get(cls, select_mode, open_code, all_lost_code, min_lost, max_lost, repeat_cnt, repeat_team_max_cnt, odd_cnt, min_opensum, max_opensum, contains_codes):
-        """Low:1-11, mid:12-22, high:23-33
-
-        Args:
-            select_mode (TYPE): Description
-            all_lost_code (TYPE): Description
-            min_lost (TYPE): Description
-            max_lost (TYPE): Description
-
-        Returns:
-            TYPE: Description
+    def get(cls, select_mode, open_code, all_lost_code, min_lost, max_lost, repeat_cnt, repeat_team_max_cnt, odd_cnt,
+            min_opensum, max_opensum, contains_codes):
+        """
+        :param select_mode:
+        :param open_code:
+        :param all_lost_code:
+        :param min_lost:
+        :param max_lost:
+        :param repeat_cnt:
+        :param repeat_team_max_cnt:
+        :param odd_cnt:
+        :param min_opensum:
+        :param max_opensum:
+        :param contains_codes:
+        :return:
         """
         tmp = select_mode.split('-')
         low_code_cnt, mid_code_cnt, high_code_cnt = int(tmp[0]), int(tmp[1]), int(tmp[2])
@@ -170,40 +173,40 @@ class CombinationsTool(object):
                     tmp_high = list(high)
                     tmp_low = list(low)
                     tmp_mid = list(mid)
-                    calulate_arr = []
-                    calulate_arr.extend(tmp_low)
-                    calulate_arr.extend(tmp_mid)
-                    calulate_arr.extend(tmp_high)
-                    lost_sum = sum([all_lost_code[elem - 1][1] for elem in calulate_arr])
-                    calulate_arr.sort()
+                    calculate_arr = []
+                    calculate_arr.extend(tmp_low)
+                    calculate_arr.extend(tmp_mid)
+                    calculate_arr.extend(tmp_high)
+                    lost_sum = sum([all_lost_code[elem - 1][1] for elem in calculate_arr])
+                    calculate_arr.sort()
                     if len(contains_codes) > 0:
-                        if len(set(contains_codes) & set(calulate_arr)) != len(contains_codes):
+                        if len(set(contains_codes) & set(calculate_arr)) != len(contains_codes):
                             continue
                     is_continue = False
                     repeat_team_cnt = 0
                     for index in range(5):
-                        serial_arr = list(range(calulate_arr[index], calulate_arr[index] + 3))
-                        repeat_count = len(set(serial_arr) & set(calulate_arr))
+                        serial_arr = list(range(calculate_arr[index], calculate_arr[index] + 3))
+                        repeat_count = len(set(serial_arr) & set(calculate_arr))
                         if repeat_count > 2:
                             # ignore more than 3 chains number
                             is_continue = True
                             break
                         elif repeat_count > 1:
-                            serial_arr = list(range(calulate_arr[index], calulate_arr[index] + 2))
-                            repeat_count = len(set(serial_arr) & set(calulate_arr))
+                            serial_arr = list(range(calculate_arr[index], calculate_arr[index] + 2))
+                            repeat_count = len(set(serial_arr) & set(calculate_arr))
                             if repeat_count == 2:
                                 repeat_team_cnt += 1
                     if is_continue is True or repeat_team_cnt != repeat_team_max_cnt:
                         continue
                     if odd_cnt > -1:
-                        odd_numbers = [num for num in calulate_arr if num % 2 != 0]
+                        odd_numbers = [num for num in calculate_arr if num % 2 != 0]
                         if len(odd_numbers) != odd_cnt:
                             continue
-                    if max_opensum != 0 and (sum(calulate_arr) < min_opensum or sum(calulate_arr) > max_opensum):
+                    if max_opensum != 0 and (sum(calculate_arr) < min_opensum or sum(calculate_arr) > max_opensum):
                         continue
-                    if lost_sum >= min_lost and lost_sum <= max_lost and \
-                        len(set(calulate_arr) & set(open_code)) <= repeat_cnt:
-                        results.append([calulate_arr, lost_sum])
+                    if min_lost <= lost_sum <= max_lost and \
+                            len(set(calculate_arr) & set(open_code)) <= repeat_cnt:
+                        results.append([calculate_arr, lost_sum])
         return results
 
     @classmethod
@@ -212,7 +215,6 @@ class CombinationsTool(object):
 
 
 class App(object):
-
     DB_SELECTED_CONF_FILE = os.path.join(os.path.dirname(__file__), 'select_conf.json')
 
     @classmethod
@@ -260,7 +262,8 @@ class App(object):
         self.cbb_edition.pack(fill=X, pady=8)
         self.cbb_edition.current(0)
 
-        self.btn_refresh_data = tk.Button(self.frm_left, text='手 动 刷 新', font='16', bg='PaleGreen', command=self.__refresh_raw_data)
+        self.btn_refresh_data = tk.Button(self.frm_left, text='手 动 刷 新', font='16', bg='PaleGreen',
+                                          command=self.__refresh_raw_data)
         self.btn_refresh_data.pack(fill=X, pady=8)
 
         self.lb_select_mode = tk.Label(self.frm_left, anchor=W, text='区间比(可输入 低区-中区-高区)')
@@ -312,12 +315,14 @@ class App(object):
         self.frm_left_opensum_range = tk.LabelFrame(self.frm_left)
         self.frm_left_opensum_range.pack()
         self.tf_range_sum_min_var = IntVar()
-        self.tf_range_sum_min = tk.Entry(self.frm_left_opensum_range, justify=CENTER, textvariable=self.tf_range_sum_min_var)
+        self.tf_range_sum_min = tk.Entry(self.frm_left_opensum_range, justify=CENTER,
+                                         textvariable=self.tf_range_sum_min_var)
         self.tf_range_sum_min.pack(side=LEFT)
         self.lb_opencode_sum = tk.Label(self.frm_left_opensum_range, text='~~~')
         self.lb_opencode_sum.pack(side=LEFT)
         self.tf_range_sum_max_var = IntVar()
-        self.tf_range_sum_max = tk.Entry(self.frm_left_opensum_range, justify=CENTER, textvariable=self.tf_range_sum_max_var)
+        self.tf_range_sum_max = tk.Entry(self.frm_left_opensum_range, justify=CENTER,
+                                         textvariable=self.tf_range_sum_max_var)
         self.tf_range_sum_max.pack(side=LEFT)
         self.tf_range_sum_min_var.set('0')
         self.tf_range_sum_max_var.set('0')
@@ -341,22 +346,29 @@ class App(object):
         self.frm_left_lost_repeat = tk.LabelFrame(self.frm_left)
         self.frm_left_lost_repeat.pack(fill=X, padx=8)
         self.rb_lost_repeat_cnt = IntVar()
-        self.rb_lost_repeat_0 = tk.Radiobutton(self.frm_left_lost_repeat, text="0组", variable=self.rb_lost_repeat_cnt, value=0)
-        self.rb_lost_repeat_1 = tk.Radiobutton(self.frm_left_lost_repeat, text="1组", variable=self.rb_lost_repeat_cnt, value=1)
-        self.rb_lost_repeat_2 = tk.Radiobutton(self.frm_left_lost_repeat, text="2组", variable=self.rb_lost_repeat_cnt, value=2)
-        self.rb_lost_repeat_3 = tk.Radiobutton(self.frm_left_lost_repeat, text="3组", variable=self.rb_lost_repeat_cnt, value=3)
+        self.rb_lost_repeat_0 = tk.Radiobutton(self.frm_left_lost_repeat, text="0组", variable=self.rb_lost_repeat_cnt,
+                                               value=0)
+        self.rb_lost_repeat_1 = tk.Radiobutton(self.frm_left_lost_repeat, text="1组", variable=self.rb_lost_repeat_cnt,
+                                               value=1)
+        self.rb_lost_repeat_2 = tk.Radiobutton(self.frm_left_lost_repeat, text="2组", variable=self.rb_lost_repeat_cnt,
+                                               value=2)
+        self.rb_lost_repeat_3 = tk.Radiobutton(self.frm_left_lost_repeat, text="3组", variable=self.rb_lost_repeat_cnt,
+                                               value=3)
         self.rb_lost_repeat_0.pack(side=LEFT, fill=X, expand=True)
         self.rb_lost_repeat_1.pack(side=LEFT, fill=X, expand=True)
         self.rb_lost_repeat_2.pack(side=LEFT, fill=X, expand=True)
         self.rb_lost_repeat_3.pack(side=LEFT, fill=X, expand=True)
 
-        self.btn_select_code = tk.Button(self.frm_left, text='清空已选记录', font='16', fg='DarkOrange', bg='RoyalBlue', command=self.__clear_select_code)
+        self.btn_select_code = tk.Button(self.frm_left, text='清空已选记录', font='16', fg='DarkOrange', bg='RoyalBlue',
+                                         command=self.__clear_select_code)
         self.btn_select_code.pack(fill=X, pady=8)
 
-        self.btn_select_code = tk.Button(self.frm_left, text='开 始 选 号', font='16', bg='Orange', command=self.__select_code)
+        self.btn_select_code = tk.Button(self.frm_left, text='开 始 选 号', font='16', bg='Orange',
+                                         command=self.__select_code)
         self.btn_select_code.pack(fill=X, pady=8)
 
-        self.btn_save_select_code = tk.Button(self.frm_left, text='保 存 结 果', font='16', bg='FireBrick', command=self.__save_select_code)
+        self.btn_save_select_code = tk.Button(self.frm_left, text='保 存 结 果', font='16', bg='FireBrick',
+                                              command=self.__save_select_code)
         self.btn_save_select_code.pack(fill=X, pady=8)
 
     def __initialize_right(self):
@@ -367,14 +379,16 @@ class App(object):
         self.lb_opencode.pack()
 
         self.tf_opencode_var = StringVar()
-        self.tf_oepncode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 16', fg='OrangeRed2', bg='ghost white', textvariable=self.tf_opencode_var)
+        self.tf_oepncode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 16', fg='OrangeRed2', bg='ghost white',
+                                    textvariable=self.tf_opencode_var)
         self.tf_oepncode['state'] = 'readonly'
         self.tf_oepncode.pack(fill=X)
 
         self.lb_curr_all_lostcode = tk.Label(self.frm_right, text='本期全号遗漏:')
         self.lb_curr_all_lostcode.pack()
         self.tf_curr_all_lostcode_var = StringVar()
-        self.tf_curr_all_lostcode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 10', fg='HotPink', bg='ghost white', textvariable=self.tf_curr_all_lostcode_var)
+        self.tf_curr_all_lostcode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 10', fg='HotPink',
+                                             bg='ghost white', textvariable=self.tf_curr_all_lostcode_var)
         self.tf_curr_all_lostcode['state'] = 'readonly'
         self.tf_curr_all_lostcode.pack(fill=X)
 
@@ -382,7 +396,8 @@ class App(object):
         self.lb_lostcode = tk.Label(self.frm_right, textvariable=self.lb_lostcode_var)
         self.lb_lostcode.pack(fill=X)
         self.tf_lostcode_var = StringVar()
-        self.tf_lostcode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 16', fg='SteelBlue', bg='ghost white', textvariable=self.tf_lostcode_var)
+        self.tf_lostcode = tk.Entry(self.frm_right, justify=CENTER, font='Arial 16', fg='SteelBlue', bg='ghost white',
+                                    textvariable=self.tf_lostcode_var)
         self.tf_lostcode['state'] = 'readonly'
         self.tf_lostcode.pack(fill=X)
 
@@ -395,7 +410,8 @@ class App(object):
         self.frm_right_bottom = tk.LabelFrame(self.frm_right)
         self.frm_right_bottom.pack(fill=BOTH, expand=True)
 
-        self.list_selectcode = tk.Listbox(self.frm_right_bottom, font='Times 16', fg='forest green', selectmode=EXTENDED)
+        self.list_selectcode = tk.Listbox(self.frm_right_bottom, font='Times 16', fg='forest green',
+                                          selectmode=EXTENDED)
         self.sb_selectcode = tk.Scrollbar(self.frm_right_bottom, orient=VERTICAL)
         self.list_selectcode.config(yscrollcommand=self.sb_selectcode.set)
         self.sb_selectcode.config(command=self.list_selectcode.yview)
@@ -405,7 +421,8 @@ class App(object):
         self.list_selectcode.bind('<Double-Button-1>', self.__doubleclick_on_selectcods_list)
         self.list_selectcode.bind('<space>', self.__doubleclick_on_selectcods_list)
 
-        self.list_selectcode_out = tk.Listbox(self.frm_right_bottom, font='Arial  14', fg='goldenrod1', bg='white smoke', selectmode=EXTENDED)
+        self.list_selectcode_out = tk.Listbox(self.frm_right_bottom, font='Arial  14', fg='goldenrod1',
+                                              bg='white smoke', selectmode=EXTENDED)
         self.sb_selectcode_out = tk.Scrollbar(self.frm_right_bottom, orient=VERTICAL)
         self.list_selectcode_out.config(yscrollcommand=self.sb_selectcode_out.set)
         self.sb_selectcode_out.config(command=self.list_selectcode_out.yview)
@@ -436,7 +453,8 @@ class App(object):
     def __refresh_view(self):
         lostcode = self.__calculate_lost_current()
         lost_code_str = '  '.join(['{num}({cnt})'.format(num=elem[0], cnt=elem[1]) for elem in lostcode])
-        lost_code_sum_str = '合={sum}({lostsum})'.format(sum=sum([elem[0] for elem in lostcode]), lostsum=sum([elem[1] for elem in lostcode]))
+        lost_code_sum_str = '合={sum}({lostsum})'.format(sum=sum([elem[0] for elem in lostcode]),
+                                                        lostsum=sum([elem[1] for elem in lostcode]))
         self.tf_opencode_var.set(','.join([lost_code_str, lost_code_sum_str]))
         # show lottery
         self.__refresh_bingo_selectedcodes_tips()
@@ -478,7 +496,6 @@ class App(object):
         lost_code_sum_str = '合={sum}'.format(sum=sum([elem[1] for elem in lostcode]))
         self.tf_curr_all_lostcode_var.set(','.join([lost_code_str, lost_code_sum_str]))
 
-
     def __get_last_20_repeat_selected_lottery(self):
         bingo_codes_indexs = []
         editions = self._lottery.edition[:20]
@@ -494,7 +511,9 @@ class App(object):
     def __refresh_selection_results_tips(self):
         cnt = self.list_selectcode.size()
         selected_cnt = self.list_selectcode_out.size()
-        self.lb_selectcode_var.set('选号结果: 共 {count} 注, 已选取 {selectedcnt} 注.(双击选中或选中+空格，可以(反)选取号码), 退格键(BackSpace)可删除已选, Ctrl+d删除与近20期重复3个号码以上'.format(count=cnt, selectedcnt=selected_cnt))
+        self.lb_selectcode_var.set(
+            '选号结果: 共 {count} 注, 已选取 {selectedcnt} 注.(双击选中或选中+空格，可以(反)选取号码), 退格键(BackSpace)可删除已选, Ctrl+d删除与近20期重复3个号码以上'.format(
+                count=cnt, selectedcnt=selected_cnt))
 
     def __calculate_lost_current(self):
         return self.__calculate_lost_code(self.__get_current_opencode(), is_cur_lost=True)
@@ -539,7 +558,8 @@ class App(object):
                 break
         return lost_lottery_code
 
-    def __codes_to_lottery(self, codes):
+    @staticmethod
+    def __codes_to_lottery(codes):
         return '  '.join(['{0:0>2}'.format(elem) for elem in codes])
 
     def __select_code(self):
@@ -555,7 +575,8 @@ class App(object):
             int(self.cbb_select_odd_var.get().split('-')[0]) if self.ckb_is_allow_odd_var.get() else -1,
             self.tf_range_sum_min_var.get(),
             self.tf_range_sum_max_var.get(),
-            [int(num) for num in self.tf_contains_codes_var.get().strip().split(' ')] if self.tf_contains_codes_var.get().strip() else [])
+            [int(num) for num in
+             self.tf_contains_codes_var.get().strip().split(' ')] if self.tf_contains_codes_var.get().strip() else [])
 
         for code in lost_select_code:
             self.list_selectcode.insert(END, self.__codes_to_lottery(code[0]))
@@ -677,18 +698,17 @@ class App(object):
         self.tf_contains_codes_var.set(save_conf['tf_contains_codes_var'])
 
     def __save_select_conf(self):
-        save_conf = {}
-        save_conf['cbb_select_mode_var'] = self.cbb_select_mode_var.get()
-        save_conf['ckb_is_allow_odd_var'] = self.ckb_is_allow_odd_var.get()
-        save_conf['cbb_select_odd_var'] = self.cbb_select_odd_var.get()
-        save_conf['tf_range_min_var'] = self.tf_range_min_var.get()
-        save_conf['tf_range_max_var'] = self.tf_range_max_var.get()
-        save_conf['tf_repeat_cnt_var'] = self.tf_repeat_cnt_var.get()
-        save_conf['rb_lost_repeat_cnt'] = self.rb_lost_repeat_cnt.get()
-        save_conf['tf_range_sum_min_var'] = self.tf_range_sum_min_var.get()
-        save_conf['tf_range_sum_max_var'] = self.tf_range_sum_max_var.get()
-        save_conf['tf_contains_codes_var'] = self.tf_contains_codes_var.get()
+        save_conf = {'cbb_select_mode_var': self.cbb_select_mode_var.get(),
+                     'ckb_is_allow_odd_var': self.ckb_is_allow_odd_var.get(),
+                     'cbb_select_odd_var': self.cbb_select_odd_var.get(),
+                     'tf_range_min_var': self.tf_range_min_var.get(), 'tf_range_max_var': self.tf_range_max_var.get(),
+                     'tf_repeat_cnt_var': self.tf_repeat_cnt_var.get(),
+                     'rb_lost_repeat_cnt': self.rb_lost_repeat_cnt.get(),
+                     'tf_range_sum_min_var': self.tf_range_sum_min_var.get(),
+                     'tf_range_sum_max_var': self.tf_range_sum_max_var.get(),
+                     'tf_contains_codes_var': self.tf_contains_codes_var.get()}
         with open(self.DB_SELECTED_CONF_FILE, 'w') as fd:
             json.dump(save_conf, fd, indent=4, separators=(',', ': '))
+
 
 App.main()

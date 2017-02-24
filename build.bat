@@ -1,1 +1,1 @@
-pyinstaller -F -w --clean app.py
+pyinstaller -n caipiao -F -w --clean app.py
