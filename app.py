@@ -18,24 +18,38 @@ import urllib.request
 import json
 import os
 from itertools import combinations
-
+import collector
 
 class LotteryQurey(object):
     """docstring for LotteryQurey"""
-    DB_FILE = os.path.join(os.path.dirname(__file__), 'lottery.json')
-    QUERY_URL = 'http://f.apiplus.cn/ssq-50.json'
+    DB_FILE = os.path.join(os.path.dirname(os.environ["APPDATA"]), 'lottery.json')
     DEFAULT_CODE = [num for num in range(1, 34)]
 
     def __init__(self):
         self._data = {}
         self.__load()
 
+    def parse_raw_lottery(self, raw_data):
+        data = []
+        for e in raw_data:
+            item = {}
+            item['date'] = e['date'][0:10]
+            item['redcode'] = [int(num) for num in e['red'].strip().split(',')]
+            item['bluecode'] = int(e['blue'])
+            item['code'] = item['redcode'] + [item['bluecode']]
+            data.append(item)
+        return data
+
     def refresh(self):
         try:
-            data = urllib.request.urlopen(self.QUERY_URL).read().decode('utf-8')
-            data = json.loads(data)['data']
-            self.__parse_data(data)
-            self.__save()
+            start_date = None
+            if len(self._data) > 0:
+                start_date = self.edition[0]
+            raw_data = collector.get_all_lottery_codes_by_date(start_date, None)
+            if len(raw_data) > 0:
+                data = self.parse_raw_lottery(raw_data)
+                self.__parse_data(data)
+                self.__save()
         except Exception as e:
             raise e
 
@@ -43,13 +57,12 @@ class LotteryQurey(object):
         lotteries = {}
         for item in data:
             lottery = {}
-            lottery['expect'] = item['expect']
-            # the last one is blue code.
-            lottery['code'] = [int(num) for elem in item['opencode'].split(',') for num in (elem.split('+') if '+' in elem else [elem])]
-            lottery['redcode'] = lottery['code'][:-1]
-            lottery['bluecode'] = lottery['code'][-1]
+            lottery['date'] = item['date']
+            lottery['code'] = item['code']
+            lottery['redcode'] = item['redcode'] 
+            lottery['bluecode'] = item['bluecode'] 
             lottery['lostcode'] = list(set(self.DEFAULT_CODE) - set(lottery['redcode']))
-            lotteries[lottery['expect']] = lottery
+            lotteries[lottery['date']] = lottery
         self._data.update(lotteries)
 
     def __load(self):
@@ -57,11 +70,12 @@ class LotteryQurey(object):
             if os.path.exists(self.DB_FILE):
                 with open(self.DB_FILE, 'r') as fd:
                     self._data = json.load(fd)
-            else:
-                # init data from internet
-                self.refresh()
+            self.refresh()
         except Exception as e:
-            raise e
+            try:
+                self.refresh()
+            except Exception as e:
+                raise e
 
     def __save(self):
         try:
